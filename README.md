@@ -24,6 +24,7 @@ doesn’t mean that the temporal architecture is less suited for the task, but t
 a certain guess would be that it would achieve better results on the task compared to the Spatiotemporal model. This comes from the fact that an LSTM uses a forget gate that enables it to filter what kind of features it should pass forward from
 earlier time-steps to the dense layers, while the spatiotemporal model provides all the feature from all the time steps to the dense layers."
 
+It is often normal to use the Nvidia CNN architecture for image input. 
 
 ## Installation
 Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
