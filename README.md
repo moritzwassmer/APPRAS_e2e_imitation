@@ -15,6 +15,16 @@ The set-ups investigated are the [following](https://gitlab.com/jakowiren/end2en
  - RGB + LiDAR + Radar
 
 
+## Architecture
+
+The Master Thesis by Jonas Dammen "End-to-end deep learning for autonomous driving" compares three different model architectures for multimodal end-to-end driving in Carla. The result was that a stacked spatio-temporal CNN performed better than a RNN and a simple CNN. However, he also notes that he expects the temporal model to outperform the spatiotemporal model if properly configured (more difficult).
+"A necessity for the spatiotemporal model was to find the correct size of the dense layers. Except for that the architecture is similar to the spatial one, except for the stacking of feature extractors. After a good combination of dense layers was
+found, then tweaking of hyper-parameters was applied to get the final model. This was not the case with the temporal architecture. This architecture was without doubt the hardest to train, and to get to achieve a validation loss below 0.1. This
+doesn’t mean that the temporal architecture is less suited for the task, but the complexity of a recurrent neural network makes it more difficult to configure. If the correct architecture and training configuration was found during exploitation, then
+a certain guess would be that it would achieve better results on the task compared to the Spatiotemporal model. This comes from the fact that an LSTM uses a forget gate that enables it to filter what kind of features it should pass forward from
+earlier time-steps to the dense layers, while the spatiotemporal model provides all the feature from all the time steps to the dense layers."
+
+
 ## Installation
 Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
