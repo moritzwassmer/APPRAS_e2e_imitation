@@ -9,10 +9,11 @@ The project aims to create a End-to-End model for autonomous driving that is dev
 Specifically, the project aims to investigate and compare the performance of several different sensor-setups. 
 The set-ups investigated are the [following](https://gitlab.com/jakowiren/end2endappras/-/issues/18):
 
- - RGB
- - RGB + LiDAR
- - RGB + Radar
- - RGB + LiDAR + Radar
+- RGB
+- Odometry/IMU + RGB
+- Odometry/IMU + RGB + LiDAR
+- Odometry/IMU + RGB + RADAR
+- Odometry/IMU + RGB + LiDAR + RADAR
 
 
 ## Architecture
