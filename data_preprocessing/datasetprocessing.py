@@ -32,6 +32,12 @@ train_samples, validation_samples = train_test_split(samples,test_size=0.15)
 
 #code for generator
 #takes raw data and performs simple transformation (flip, angle augmentation)
+
+
+### INSPIRATION CODE, MADE IN TF, NOT WORKED ON ATM
+
+
+
 def generator(samples, batch_size=32):
     num_samples = len(samples)
    

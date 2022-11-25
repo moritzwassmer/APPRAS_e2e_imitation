@@ -1,11 +1,15 @@
 import  torch.nn as nn
 import torch as torch 
 import firstarchitecture as model
-import / as X_train, y_train
+import sys
 
-loss_function = nn.CrossEntropyLoss()# or MSE makes more sense?
+##import training data from relevant dir as x_train, y_train
 
-optimizer = torch.optim.Adam(model.parameters(),lr=0.01)  
+##make readme of hyperparameters
+
+loss_function = nn.MSELoss()# or MSE makes more sense?
+
+optimizer = torch.optim.Adam(model.parameters(),lr=0.01)
 
 epochs=500
 
