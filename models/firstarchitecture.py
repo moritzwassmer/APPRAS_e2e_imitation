@@ -4,27 +4,16 @@
 
 #IMPORTS
 
-import os
-import numpy as np
-import csv
-import cv2
-import sklearn
-import matplotlib.pyplot as plt
-from sklearn.utils import shuffle
-from sklearn.model_selection import train_test_split
-from torch import nn
-import torchvision.transforms.functional as fn
 
-from keras.layers.core import Dense, Flatten, Activation, Dropout
-from keras.layers.convolutional import Convolution2D
-
-
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 ##some function for data extraction and downloading
 
 
-#examples for collecting data from csv
+#examples for collecting data 
+## MOVE TO datapreprocessing dir
 '''
 samples = []
 with open('./data/data/driving_log.csv') as csvfile: #currently after extracting the file is present in this path
@@ -46,7 +35,7 @@ with open('./data/driving_log.csv') as csvfile:
 
 
 
-
+#MOVE TO preprocessing dir
 train_samples, validation_samples = train_test_split(samples,test_size=0.15) 
 #simply splitting the dataset to train and validation set usking sklearn. .15 indicates 15% of the dataset is validation set
 # the 15% needs to be defined according to research, just random atm
@@ -93,15 +82,47 @@ train_generator = generator(train_samples, batch_size=32)
 validation_generator = generator(validation_samples, batch_size=32)
 
 
-#lambda pytorch version
-class LambdaLayer(nn.Module):
-    def __init__(self, lambd):
-        super(LambdaLayer, self).__init__()
-        self.lambd = lambd
+
+
+
+class CNNModel(nn.module):
+    def __init__(self) -> None:
+        super(CNNModel, self).__init__()
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(3, 24, 5, stride=2),
+            nn.ELU(),
+            nn.Conv2d(24, 36, 5, stride=2),
+            nn.ELU(),
+            nn.Conv2d(36, 48, 5, stride=2),
+            nn.ELU(),
+            nn.Conv2d(48, 64, 3),
+            nn.ELU(),
+            nn.Conv2d(64, 64, 3),
+            nn.Dropout(0.5)
+        )
+        self.linear_layers = nn.Sequential(
+            nn.Linear(in_features=64 * 2 * 33, out_features=100),
+            nn.ELU(),
+            nn.Linear(in_features=100, out_features=50),
+            nn.ELU(),
+            nn.Linear(in_features=50, out_features=10),
+            nn.Linear(in_features=10, out_features=1)
+        )
+        self.conv2 = nn.Conv2d(32, 64, 5, 1)
+        self.fc = nn.Linear(64*20*20, 47)
+    
     def forward(self, x):
-        return self.lambd(x)
+        """Forward pass."""
+        input = input.view(input.size(0), 3, 70, 320)
+        output = self.conv_layers(input)
+        # print(output.shape)
+        output = output.view(output.size(0), -1)
+        output = self.linear_layers(output)
+        return output
 
 
+model = CNNModel()
+#lambda pytorch version
 model = nn.Sequential()
 
 # Preprocess incoming data, centered around zero with small standard deviation 
