@@ -1,4 +1,4 @@
-![architecture](nvidia_model-architecture.png)
+![architecture](/nvidia_model-achitecture.png)
 
 NVIDIA model used
 
