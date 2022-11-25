@@ -3,6 +3,11 @@
 
 #examples for collecting data 
 ## MOVE TO datapreprocessing dir
+
+### TODO: use pytorch for streaming all of the data in "realtime"
+
+
+
 '''
 samples = []
 with open('./data/data/driving_log.csv') as csvfile: #currently after extracting the file is present in this path
