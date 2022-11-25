@@ -1,3 +1,5 @@
+![architecture](nvidia_model-architecture.png)
+
 NVIDIA model used
 
 Image normalization to avoid saturation and make gradients work better.
