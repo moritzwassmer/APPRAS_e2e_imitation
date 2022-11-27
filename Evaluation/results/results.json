@@ -2,7 +2,7 @@
     "_checkpoint": {
         "global_record": {},
         "progress": [
-            3,
+            0,
             4
         ],
         "records": [
@@ -13,97 +13,30 @@
                     "collisions_pedestrian": [],
                     "collisions_vehicle": [],
                     "outside_route_lanes": [],
-                    "red_light": [
-                        "Agent ran a red light 115 at (x=341.25, y=209.1, z=0.104)"
-                    ],
-                    "route_dev": [
-                        "Agent deviated from the route at (x=337.789, y=165.923, z=0.034)"
-                    ],
-                    "route_timeout": [],
-                    "stop_infraction": [],
-                    "vehicle_blocked": []
-                },
-                "meta": {
-                    "duration_game": 12.450000185519457,
-                    "duration_system": 16.271241903305054,
-                    "route_length": 737.4217028017997
-                },
-                "route_id": "RouteScenario_0",
-                "scores": {
-                    "score_composed": 3.1194039951489247,
-                    "score_penalty": 0.7,
-                    "score_route": 4.456291421641321
-                },
-                "status": "Failed - Agent deviated from the route"
-            },
-            {
-                "index": 1,
-                "infractions": {
-                    "collisions_layout": [],
-                    "collisions_pedestrian": [],
-                    "collisions_vehicle": [],
-                    "outside_route_lanes": [
-                        "Agent went outside its route lanes for about 1.106 meters (0.24% of the completed route)"
-                    ],
-                    "red_light": [],
-                    "route_dev": [
-                        "Agent deviated from the route at (x=164.334, y=89.51, z=0.253)"
-                    ],
-                    "route_timeout": [],
-                    "stop_infraction": [],
-                    "vehicle_blocked": []
-                },
-                "meta": {
-                    "duration_game": 50.5500007532537,
-                    "duration_system": 62.406139612197876,
-                    "route_length": 1128.3240988201576
-                },
-                "route_id": "RouteScenario_1",
-                "scores": {
-                    "score_composed": 38.793162459831244,
-                    "score_penalty": 0.9976329911874164,
-                    "score_route": 38.88520408056906
-                },
-                "status": "Failed - Agent deviated from the route"
-            },
-            {
-                "index": 2,
-                "infractions": {
-                    "collisions_layout": [
-                        "Agent collided against object with type=static.guardrail and id=0 at (x=-100.398, y=414.872, z=0.034)"
-                    ],
-                    "collisions_pedestrian": [],
-                    "collisions_vehicle": [],
-                    "outside_route_lanes": [],
                     "red_light": [],
                     "route_dev": [],
                     "route_timeout": [],
                     "stop_infraction": [],
-                    "vehicle_blocked": [
-                        "Agent got blocked at (x=-99.3, y=414.047, z=0.032)"
-                    ]
+                    "vehicle_blocked": []
                 },
                 "meta": {
-                    "duration_game": 233.05000347271562,
-                    "duration_system": 304.0651686191559,
-                    "route_length": 2628.0801981075497
+                    "duration_game": 0.0,
+                    "duration_system": 0.0,
+                    "route_length": 737.4217028017997
                 },
-                "route_id": "RouteScenario_2",
+                "route_id": "RouteScenario_0",
                 "scores": {
-                    "score_composed": 10.441891426617117,
-                    "score_penalty": 0.65,
-                    "score_route": 16.06444834864172
+                    "score_composed": 0.0,
+                    "score_penalty": 1.0,
+                    "score_route": 0.0
                 },
-                "status": "Failed - Agent got blocked"
+                "status": "Failed - Agent's sensors were invalid"
             }
         ]
     },
     "eligible": false,
-    "entry_status": "Started",
+    "entry_status": "Rejected",
     "labels": [],
-    "sensors": [
-        "carla_camera",
-        "carla_speedometer"
-    ],
+    "sensors": [],
     "values": []
 }
