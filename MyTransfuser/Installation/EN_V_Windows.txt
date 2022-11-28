@@ -4,9 +4,9 @@ setx GITLAB_ROOT C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming
 setx CARLA_ROOT D:\CARLA\WindowsNoEditor
 
 
-#AUTOMATICALLY
+#restart cmd before running the following lines
 setx LEADERBOARD_ROOT %GITLAB_ROOT%\MyTransfuser\transfuser\leaderboard
 setx SCENARIO_RUNNER_ROOT %GITLAB_ROOT%\MyTransfuser\transfuser\scenario_runner
 
-
+#restart cmd before running the following line
 setx PYTHONPATH %PYTHONPATH%;%CARLA_ROOT%\PythonAPI\carla;%CARLA_ROOT%\PythonAPI\carla\dist\carla-0.9.10-py3.7-win-amd64.egg;%LEADERBOARD_ROOT%;%SCENARIO_RUNNER_ROOT%
