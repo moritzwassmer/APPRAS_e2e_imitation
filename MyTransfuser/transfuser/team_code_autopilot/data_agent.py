@@ -8,6 +8,10 @@ import numpy as np
 import pygame
 import json
 
+# create map for renderer
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 from utils import lts_rendering
 from utils.map_utils import MapImage, encode_npy_to_pil, PIXELS_PER_METER
 from autopilot import AutoPilot

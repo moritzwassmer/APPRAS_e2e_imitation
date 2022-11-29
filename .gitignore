@@ -1,6 +1,7 @@
 ## Project Specific
 data/
 
+data_generation/results/*
 
 ## Environment Specific
 # Editors
