@@ -1,0 +1,12 @@
+set EVAL_FOLDER=%GITLAB_ROOT%\Evaluation
+set XML=%EVAL_FOLDER%\routes\2_routes_2_weathers_t1_t3.xml
+set RESULTS=%EVAL_FOLDER%\results\sample_evaluations
+set SAVE_DIR=%EVAL_FOLDER%\results\parsed
+set TOWN_MAPS=%EVAL_FOLDER%\results\town_maps_xodr
+
+python %GITLAB_ROOT%\Evaluation\results\result_parser.py ^
+--xml %XML% ^
+--results %RESULTS% ^
+--save_dir %SAVE_DIR% ^
+--town_maps %TOWN_MAPS%
+
