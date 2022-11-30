@@ -26,7 +26,7 @@ class DummyAgent(AutonomousAgent):
         """
         Setup the agent parameters
         """
-        self.track = Track.MAP
+        self.track = Track.SENSORS#Track.MAP
 
     def sensors(self):
         """
