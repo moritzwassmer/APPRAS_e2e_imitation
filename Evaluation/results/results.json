@@ -3,40 +3,15 @@
         "global_record": {},
         "progress": [
             0,
-            4
+            1
         ],
-        "records": [
-            {
-                "index": 0,
-                "infractions": {
-                    "collisions_layout": [],
-                    "collisions_pedestrian": [],
-                    "collisions_vehicle": [],
-                    "outside_route_lanes": [],
-                    "red_light": [],
-                    "route_dev": [],
-                    "route_timeout": [],
-                    "stop_infraction": [],
-                    "vehicle_blocked": []
-                },
-                "meta": {
-                    "duration_game": 0.0,
-                    "duration_system": 0.0,
-                    "route_length": 737.4217028017997
-                },
-                "route_id": "RouteScenario_0",
-                "scores": {
-                    "score_composed": 0.0,
-                    "score_penalty": 1.0,
-                    "score_route": 0.0
-                },
-                "status": "Failed - Agent's sensors were invalid"
-            }
-        ]
+        "records": []
     },
-    "eligible": false,
-    "entry_status": "Rejected",
+    "eligible": "",
+    "entry_status": "",
     "labels": [],
-    "sensors": [],
+    "sensors": [
+        "carla_camera"
+    ],
     "values": []
 }
