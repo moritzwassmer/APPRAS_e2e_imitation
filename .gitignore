@@ -1,7 +1,7 @@
 ## Project Specific
 data/
-
 data_generation/results/*
+data_preprocessing/
 
 ## Environment Specific
 # Editors
