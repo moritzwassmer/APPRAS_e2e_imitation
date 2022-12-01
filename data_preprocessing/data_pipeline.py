@@ -34,24 +34,12 @@ class CARLADataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        # joined_path = os.path.join(self.root_dir, "rgb")
-        # len([name for name in os.listdir(joined_path) if os.path.isfile(os.path.join(joined_path, name))])
         return len(self.df_meta_data)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        # img_name = os.path.join(self.root_dir,
-        #                         self.landmarks_frame.iloc[idx, 0])
-        # image = io.imread(img_name)
-        # landmarks = self.landmarks_frame.iloc[idx, 1:]
-        # landmarks = np.array([landmarks])
-        # landmarks = landmarks.astype('float').reshape(-1, 2)
-        # sample = {'image': image, 'landmarks': landmarks}
-
-        # file_paths = [os.path.join(self.root_dir, self.df_meta_data.columns[j], self.df_meta_data.iloc[idx, j]) \
-        #         for j in range(1, self.df_meta_data.shape[1])]
         sample = dict()
         route = self.df_meta_data.iloc[idx, 0]
         for j in range(1, self.df_meta_data.shape[1]):
