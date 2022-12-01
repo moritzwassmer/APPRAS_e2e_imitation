@@ -2,6 +2,7 @@
 data/
 
 data_generation/results/*
+models/nvidia_cnn/model/*
 
 ## Environment Specific
 # Editors
