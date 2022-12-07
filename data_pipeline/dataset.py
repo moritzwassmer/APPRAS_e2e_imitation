@@ -74,29 +74,6 @@ class CARLADataset(Dataset):
         return True
 
 
-    def __getitem___2(self, idx):
-        """
-        Old working implementation for seq_len = 0
-        """
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        sample = dict()
-        sample["idx"] = idx
-        route = self.df_meta_data.iloc[idx, 0]
-        for j in range(1, self.df_meta_data.shape[1]):
-            sensor, file_name = self.df_meta_data.columns[j], self.df_meta_data.iloc[idx, j]
-            file_path = os.path.join(self.root_dir, route, sensor, file_name)
-            sample[sensor] = self.load_data_from_path(file_path)
-        
-        if "measurements" in self.used_inputs:
-            sample = self.__select_measurement_attributes(sample)
-
-        if self.transform:
-            sample = self.transform(sample)
-
-        return sample
-
     def __create_metadata_df(self, root_dir, used_inputs):
         """
         Creates the metadata (i.e. filenames) based on the the data root directory.
@@ -112,11 +89,15 @@ class CARLADataset(Dataset):
         columns = ["route"] + sensor_folders
         df_meta = pd.DataFrame(columns=columns)
         for route_folder in route_folders:
-            meta_data_route = []
+            meta_data_route = [] 
             for sensor_folder in sensor_folders:
                 meta_data_route.append(sorted(os.listdir(os.path.join(root_dir, route_folder, sensor_folder))))
             meta_data_route.insert(0, [route_folder]*len(meta_data_route[0]))
-            df_meta = pd.concat([df_meta, pd.DataFrame(columns=columns, data=np.transpose(meta_data_route))])        
+            num_entries = np.array([len(sublist) for sublist in meta_data_route])
+            if not np.all(num_entries == num_entries[0]):
+                print(f"{route_folder} has varying number of data files among input folders. It got discarded from the dataset.")
+                continue
+            df_meta = pd.concat([df_meta, pd.DataFrame(columns=columns, data=np.transpose(meta_data_route))], ignore_index=True)        
         return df_meta
     
     def __get_file_path_from_df(self, idx, sensor):
@@ -141,21 +122,6 @@ class CARLADataset(Dataset):
         sample_cpy.pop("measurements")
         return sample_cpy
 
-    def __select_measurement_attributes_2(self, sample):
-        """
-        Args:
-            sample (dict): The unfiltered sample containing all measurement attributes.
-        Return:
-            sample_cpy (dict): The filtered sample containing only measurement attributes 
-            defined in self.used measurements.
-        """
-        sample_cpy = sample.copy()
-        measurements = sample_cpy["measurements"]
-        for attribute in self.used_measurements:
-            sample_cpy[attribute] = measurements[attribute]
-        sample_cpy.pop("measurements")
-        return sample_cpy
-
 
     def save_meta_data(self, path=None):
         """
@@ -165,6 +131,7 @@ class CARLADataset(Dataset):
         if not path:
              path = os.path.join(self.root_dir, "meta_data.csv")
         self.df_meta_data.to_csv(path, index=False)
+
 
     def load_data_from_path(self, path):
         """
