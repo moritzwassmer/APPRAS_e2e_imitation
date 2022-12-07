@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torchvision import transforms
 import torch
 import pandas as pd
@@ -128,7 +128,7 @@ class CARLADataset(Dataset):
         Args:
             sample (dict): The unfiltered sample containing all measurement attributes.
         Return:
-            sample_cpy (dict): The filtered sample containing only measurement attributes 
+            sample_cpy (dict): The filtered sample containing only measurement attributes
             defined in self.used measurements.
         """
         sample_cpy = sample.copy()
