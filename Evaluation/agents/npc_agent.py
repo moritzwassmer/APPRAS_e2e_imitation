@@ -78,7 +78,7 @@ class NpcAgent(AutonomousAgent):
                     hero_actor = actor
                     break
             if hero_actor:
-                self._agent = BasicAgent(hero_actor)
+                self._agent = BasicAgent(hero_actor) # agent which is able to drive through waypoints
 
             return control
 
@@ -88,12 +88,13 @@ class NpcAgent(AutonomousAgent):
 
                 prev = None
                 for transform, _ in self._global_plan_world_coord:
-                    wp = CarlaDataProvider.get_map().get_waypoint(transform.location)
+                    wp = CarlaDataProvider.get_map().get_waypoint(transform.location) #current location
                     if  prev:
                         route_segment = self._agent._trace_route(prev, wp)
                         plan.extend(route_segment)
 
                     prev = wp
+                #print(plan)
 
                 #loc = plan[-1][0].transform.location
                 #self._agent.set_destination([loc.x, loc.y, loc.z])

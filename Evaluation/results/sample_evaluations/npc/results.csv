@@ -1,0 +1,50 @@
+Avg. driving score,27.666
+Avg. route completion,36.457
+Avg. infraction penalty,0.757
+Collisions with pedestrians,0.0
+Collisions with vehicles,3.1619549515915173
+Collisions with layout,0.0
+Red lights infractions,0.0
+Stop sign infractions,1.053984983863839
+Off-road infractions,0.0
+Route deviations,2.107969967727678
+Route timeouts,0.0
+Agent blocked,0.0
+""
+route,town,weather,daytime,score mean,score std,completion mean,completion std,duration mean,duration std,length mean,length std,collisions_layout mean,collisions_layout std,collisions_pedestrian mean,collisions_pedestrian std,collisions_vehicle mean,collisions_vehicle std,outside_route_lanes mean,outside_route_lanes std,red_light mean,red_light std,route_dev mean,route_dev std,route_timeout mean,route_timeout std,stop_infraction mean,stop_infraction std,vehicle_blocked mean,vehicle_blocked std
+RouteScenario_0,Town01,MidRain,Dawn,69.47042855540944,0.0,69.47042855540944,0.0,302.30000450462103,0.0,1130.24134093902,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+RouteScenario_1,Town01,Cloudy,Dawn,23.074159560261847,0.0,23.074159560261847,0.0,99.80000148713589,0.0,1014.5683614271728,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+RouteScenario_13,Town03,MidRain,Twilight,1.082258439018532,0.0,36.24461614725772,0.0,337.20000502467155,0.0,1748.053394390975,0.0,0.0,0.0,0.0,0.0,6.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,2.0,0.0,0.0,0.0
+RouteScenario_14,Town03,WetCloudy,Night,17.037773220425585,0.0,17.037773220425585,0.0,151.45000225678086,0.0,1436.210995252817,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+""
+town,score mean,score std,completion mean,completion std,duration mean,duration std,length mean,length std,collisions_layout mean,collisions_layout std,collisions_pedestrian mean,collisions_pedestrian std,collisions_vehicle mean,collisions_vehicle std,outside_route_lanes mean,outside_route_lanes std,red_light mean,red_light std,route_dev mean,route_dev std,route_timeout mean,route_timeout std,stop_infraction mean,stop_infraction std,vehicle_blocked mean,vehicle_blocked std
+Town01,46.272294057835644,23.198134497573797,46.272294057835644,23.198134497573797,201.05000299587846,101.25000150874257,1072.4048511830963,57.83648975592354,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+Town03,9.060015829722058,7.977757390703527,26.641194683841654,9.603421463416069,244.3250036407262,92.87500138394535,1592.132194821896,155.92119956907902,0.0,0.0,0.0,0.0,3.0,3.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0
+""
+weather,score mean,score std,completion mean,completion std,duration mean,duration std,length mean,length std,collisions_layout mean,collisions_layout std,collisions_pedestrian mean,collisions_pedestrian std,collisions_vehicle mean,collisions_vehicle std,outside_route_lanes mean,outside_route_lanes std,red_light mean,red_light std,route_dev mean,route_dev std,route_timeout mean,route_timeout std,stop_infraction mean,stop_infraction std,vehicle_blocked mean,vehicle_blocked std
+Cloudy,23.074159560261847,0.0,23.074159560261847,0.0,99.80000148713589,0.0,1014.5683614271728,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+MidRain,35.276343497213986,34.194085058195455,52.857522351333586,16.61290620407586,319.7500047646463,17.450000260025263,1439.1473676649975,308.90602672597754,0.0,0.0,0.0,0.0,3.0,3.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0
+WetCloudy,17.037773220425585,0.0,17.037773220425585,0.0,151.45000225678086,0.0,1436.210995252817,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+""
+daytime,score mean,score std,completion mean,completion std,duration mean,duration std,length mean,length std,collisions_layout mean,collisions_layout std,collisions_pedestrian mean,collisions_pedestrian std,collisions_vehicle mean,collisions_vehicle std,outside_route_lanes mean,outside_route_lanes std,red_light mean,red_light std,route_dev mean,route_dev std,route_timeout mean,route_timeout std,stop_infraction mean,stop_infraction std,vehicle_blocked mean,vehicle_blocked std
+Dawn,46.272294057835644,23.198134497573797,46.272294057835644,23.198134497573797,201.05000299587846,101.25000150874257,1072.4048511830963,57.83648975592354,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+Night,17.037773220425585,0.0,17.037773220425585,0.0,151.45000225678086,0.0,1436.210995252817,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+Twilight,1.082258439018532,0.0,36.24461614725772,0.0,337.20000502467155,0.0,1748.053394390975,0.0,0.0,0.0,0.0,0.0,6.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,2.0,0.0,0.0,0.0
+""
+status,score mean,score std,completion mean,completion std,duration mean,duration std,length mean,length std,collisions_layout mean,collisions_layout std,collisions_pedestrian mean,collisions_pedestrian std,collisions_vehicle mean,collisions_vehicle std,outside_route_lanes mean,outside_route_lanes std,red_light mean,red_light std,route_dev mean,route_dev std,route_timeout mean,route_timeout std,stop_infraction mean,stop_infraction std,vehicle_blocked mean,vehicle_blocked std
+Failed - Agent deviated from the route,27.66615494377885,25.43791346215051,36.45674437083865,20.286315329395546,222.68750331830233,99.53313902413107,1332.268523002496,285.23212992689747,0.0,0.0,0.0,0.0,1.5,2.598076211353316,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.5,0.8660254037844386,0.0,0.0
+""
+town,weather,daylight,infraction type,x,y,z
+Town01,MidRain,Dawn,route_dev,121.905,1.932,0.034
+Town01,Cloudy,Dawn,route_dev,128.528,55.495,0.034
+Town03,MidRain,Twilight,collisions_vehicle,163.677,64.835,0.098
+Town03,MidRain,Twilight,collisions_vehicle,155.334,62.516,0.028
+Town03,MidRain,Twilight,collisions_vehicle,25.397,130.73,0.034
+Town03,MidRain,Twilight,collisions_vehicle,22.271,130.768,0.032
+Town03,MidRain,Twilight,collisions_vehicle,-58.557,188.541,0.034
+Town03,MidRain,Twilight,collisions_vehicle,-62.288,185.675,0.034
+Town03,MidRain,Twilight,route_dev,-44.217,134.958,0.034
+Town03,MidRain,Twilight,stop_infraction,144.779,62.663,0.797
+Town03,MidRain,Twilight,stop_infraction,-9.106,189.861,-0.0
+Town03,WetCloudy,Night,route_dev,119.438,-76.24,8.034
+""
