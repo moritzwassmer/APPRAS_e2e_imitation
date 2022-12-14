@@ -38,40 +38,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.step = -1
         self.initialized = False
 
-        args_file = open(os.path.join(path_to_conf_file, 'args.txt'), 'r')
-        self.args = json.load(args_file)
-        args_file.close()
 
         # setting machine to avoid loading files
         self.config = GlobalConfig(setting='eval')
 
-        if ('sync_batch_norm' in self.args):
-            self.config.sync_batch_norm = bool(self.args['sync_batch_norm'])
-        if ('use_point_pillars' in self.args):
-            self.config.use_point_pillars = self.args['use_point_pillars']
-        if ('n_layer' in self.args):
-            self.config.n_layer = self.args['n_layer']
-        if ('use_target_point_image' in self.args):
-            self.config.use_target_point_image = bool(self.args['use_target_point_image'])
-        if ('use_velocity' in self.args):
-            use_velocity = bool(self.args['use_velocity'])
-        else:
-            use_velocity = True
-
-        if ('image_architecture' in self.args):
-            image_architecture = self.args['image_architecture']
-        else:
-            image_architecture = 'resnet34'
-
-        if ('lidar_architecture' in self.args):
-            lidar_architecture = self.args['lidar_architecture']
-        else:
-            lidar_architecture = 'resnet18'
-
-        if ('backbone' in self.args):
-            self.backbone = self.args['backbone']  # Options 'geometric_fusion', 'transFuser', 'late_fusion', 'latentTF'
-        else:
-            self.backbone = 'transFuser'  # Options 'geometric_fusion', 'transFuser', 'late_fusion', 'latentTF'
 
         self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
         self.ego_model = EgoModel(dt=self.config.carla_frame_rate) # Bicycle model used for de-noising the GPS

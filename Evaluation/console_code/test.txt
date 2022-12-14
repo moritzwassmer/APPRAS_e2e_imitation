@@ -1,0 +1,15 @@
+set SCENARIOS=%GITLAB_ROOT%\Evaluation\scenarios\single_scenario.json
+set ROUTES=%GITLAB_ROOT%\Evaluation\routes\single_route.xml
+set REPETITIONS=1
+set DEBUG_CHALLENGE 1
+set TEAM_AGENT=%GITLAB_ROOT%\Evaluation\agents\baseline_agent.py
+set CHECKPOINT_ENDPOINT=%GITLAB_ROOT%\Evaluation\results\results.json
+set CHALLENGE_TRACK_CODENAME SENSORS
+
+python %LEADERBOARD_ROOT%\leaderboard\leaderboard_evaluator.py ^
+--port 2000 ^
+--routes %ROUTES% ^
+--scenarios %SCENARIOS% ^
+--agent %TEAM_AGENT% ^
+--repetitions 1 ^
+--checkpoint %CHECKPOINT_ENDPOINT%
