@@ -21,9 +21,28 @@ from shapely.geometry import Polygon
 import itertools
 import pathlib
 
+# OUR IMPORTS
+
+from torchvision import transforms
+
 
 def get_entry_point():
     return 'HybridAgent'
+
+# TODO : DELETE AND REPLACE WITH PREPROCESSING OF JULIAN
+def normalize_batch(tensors):
+
+    preprocess = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+    liste = []
+    for tensor in tensors:
+        tensor = preprocess(tensor)  # * 1/255
+        liste.append(tensor)
+    return torch.stack(liste)
 
 
 class HybridAgent(autonomous_agent.AutonomousAgent):
@@ -48,7 +67,16 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # Load model files
         # TODO: LOAD MODEL FILE
+        from models.rgb_baseline import MyResnet
 
+        """
+        the_model = TheModelClass(*args, **kwargs)
+        the_model.load_state_dict(torch.load(PATH))
+        """
+        net = MyResnet()
+        net.load_state_dict(torch.load("C:\\Users\\morit\\OneDrive\\UNI\\Master\\WS22\\APP-RAS\\Programming\\Evaluation\\agents\\models\\rgb_resnet.pth"))
+
+        self.net = net.cuda()
 
         self.stuck_detector = 0
         self.forced_move = 0
@@ -128,7 +156,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             rgb.append(rgb_pos)
         rgb = np.concatenate(rgb, axis=1)
 
+        #print("rgb: ")
+        #print(type(rgb))
+        #print(np.shape(rgb))
+        #print("\n")
 
+
+        # NAVIGATION
         gps = input_data['gps'][1][:2]
         speed = input_data['speed'][1]['speed']
         compass = input_data['imu'][1][-1]
@@ -150,7 +184,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         waypoint_route = self._route_planner.run_step(denoised_pos)
         next_wp, next_cmd = waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0]
+
+        #print(next_wp)
+        #print(next_cmd)
+
         result['next_command'] = next_cmd.value
+        #print(next_cmd.value)
+        #print("\n")
 
         theta = compass + np.pi/2
         R = np.array([
@@ -162,9 +202,11 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         local_command_point = R.T.dot(local_command_point)
         result['target_point'] = tuple(local_command_point)
 
-        print(result.keys)
+        #print(result.keys)
 
         return result
+
+
 
     @torch.inference_mode() # Faster version of torch_no_grad
     def run_step(self, input_data, timestamp):
@@ -199,14 +241,41 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             is_stuck = True
             self.forced_move += 1
 
+        # TODO: Preprocessing
+        batch_size = 1
 
-        # forward pass
+        config = {"used_inputs": ["rgb", "measurements"],
+                  "used_measurements": ["speed", "steer", "throttle", "brake"],
+                  "seq_len": 1
+                  }
+
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+        batch = torch.unsqueeze(torch.tensor(tick_data["rgb"]), dim=0).transpose(1,3).float()
+
+        #print(batch.shape) # torch.Size([1, 160, 960, 3]) -> transpose
+
+
+
+        # HARDCODED PRERPOCESSING
+        norm_batch = normalize_batch(batch).to(device)
+
+
+        # TODO: forward pass
+        # TODO: EVAL() call
         with torch.no_grad():
-            pass
+            outputs_ = self.net(norm_batch)
             #TODO: ADD FORWARD PASS
 
         #TODO: ASSIGN COMMANDS
-        steer, throttle, brake = (0,0,0)
+        print(outputs_)
+        steer, throttle, brake = outputs_
+        #steer, throttle, brake = (0,0,0)
+
+
+
+
+
 
 
         control = carla.VehicleControl()
