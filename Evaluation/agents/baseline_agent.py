@@ -20,12 +20,7 @@ from shapely.geometry import Polygon
 
 import itertools
 import pathlib
-SAVE_PATH = os.environ.get('SAVE_PATH')
 
-if not SAVE_PATH:
-    SAVE_PATH = None
-else:
-    pathlib.Path(SAVE_PATH).mkdir(parents=True, exist_ok=True)
 
 def get_entry_point():
     return 'HybridAgent'
