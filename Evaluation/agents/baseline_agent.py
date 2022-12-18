@@ -246,6 +246,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         print(img.shape)
         batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1,3).transpose(2,3).float() #
 
+        # TODO DEBUGGING
+        img = cv2.cvtColor(tick_data['rgb'], cv2.COLOR_RGB2BGR)
+        cv2.imwrite(str("D:\\a\\a.png" ), img) # TODO
+
         # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
         norm_batch = normalize_batch(batch).to(device)
 
@@ -368,7 +372,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return rotation_yaw
 
-    def prepare_image(self, tick_data):
+    def prepare_image(self, tick_data): # TODO Usefull?
         image = Image.fromarray(tick_data['rgb'])
         image_degrees = []
         for degree in self.aug_degrees:
