@@ -229,10 +229,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
             return self.control
 
-
-
-        num_points = None
-
         # INTERIA
         is_stuck = False
         # divide by 2 because we process every second frame
@@ -243,66 +239,27 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.forced_move += 1
 
         ### PREPROCESSING
-        batch_size = 1
 
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
-        #
-        # prepare image input: commented out, seems to be preprocessing for their specific models
-        image = self.prepare_image(tick_data)
-        #print(np.shape(image)) 1,3,160,704
-
-        ### DEBUGGING
-        # Convert the tensor to a PIL image
-        print(image.shape)
-        img_pil = transforms.ToPILImage()(image[0,:,:,:])
-
-        # Display the image
-        img_pil.save("D:\\a\\c.png")
 
         img = tick_data["rgb"]
         print(img.shape)
         batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1,3).transpose(2,3).float() #
 
-        # TODO Julians Preprocessing should reflect that
-        # print(batch.shape) # torch.Size([1, 160, 960, 3]) -> transpose(1,3).transpose(2,3)
-
-
-        ### FOR DEBUGGING, this is how the images look like. TODO Is it equal to the processing of the Trainingdata?
-        # Convert the tensor to a PIL image
-        print(batch.shape)
-        img_pil = transforms.ToPILImage()(batch[0,:,:,:])
-
-        # Display the image
-        img_pil.save("D:\\a\\a.png")
-
-
-
         # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
         norm_batch = normalize_batch(batch).to(device)
 
-        ### FOR DEBUGGING, this is how the images look like. TODO Is it equal to the processing of the Trainingdata?
-        # Convert the tensor to a PIL image
-        print(norm_batch.shape)
-        img_pil = transforms.ToPILImage()(norm_batch[0,:,:,:])
+        #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
 
-        # Display the image
-        img_pil.save("D:\\a\\b.png")
-
-        ########################################## TODO: forward pass, ASSIGN COMMANDS (Optionaly, also use a controller depending on the output)
-
-        # TODO: EVAL() call
         with torch.no_grad():
             outputs_ = self.net(norm_batch)
-        ###############################################################################
 
-        #print(outputs_)
         throttle, steer, brake = outputs_
 
+        ### INTERIA STEER MODULATION # TODO Test if it works
         if is_stuck and self.forced_move==1: # no steer for initial frame when unblocking
             steer = 0.0
 
-        # INTERIA steer modulation # TODO Test if it works
         if brake or is_stuck:
             steer *= self.steer_damping
         if (throttle < 0.1):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
@@ -315,7 +272,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         if is_stuck:
             throttle = 0.5
 
-        # Create Carla Controls
+        ### CERATE CARLA CONTROLS
         control = carla.VehicleControl()
         control.steer = float(steer)
         control.throttle = float(throttle)
