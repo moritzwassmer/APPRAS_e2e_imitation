@@ -65,8 +65,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.iou_treshold_nms = self.config.iou_treshold_nms # Iou threshold used for Non Maximum suppression on the Bounding Box predictions.
 
 
-        # Load model files
-        # TODO: LOAD MODEL FILE
+        ################################## TODO: LOAD MODEL FILE
         from models.rgb_baseline import MyResnet
 
         """
@@ -77,6 +76,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net.load_state_dict(torch.load("C:\\Users\\morit\\OneDrive\\UNI\\Master\\WS22\\APP-RAS\\Programming\\Evaluation\\agents\\models\\rgb_resnet.pth"))
 
         self.net = net.cuda()
+
+        ################################################################
 
         self.stuck_detector = 0
         self.forced_move = 0
@@ -228,11 +229,11 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
             return self.control
 
-        # prepare image input
-        image = self.prepare_image(tick_data)
+
 
         num_points = None
 
+        # INTERIA
         is_stuck = False
         # divide by 2 because we process every second frame
         # 1100 = 55 seconds * 20 Frames per second, we move for 1.5 second = 30 frames to unblock
@@ -241,48 +242,85 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             is_stuck = True
             self.forced_move += 1
 
-        # TODO: Preprocessing
+        ### PREPROCESSING
         batch_size = 1
-
-        config = {"used_inputs": ["rgb", "measurements"],
-                  "used_measurements": ["speed", "steer", "throttle", "brake"],
-                  "seq_len": 1
-                  }
 
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-        batch = torch.unsqueeze(torch.tensor(tick_data["rgb"]), dim=0).transpose(1,3).float()
+        #
+        # prepare image input: commented out, seems to be preprocessing for their specific models
+        image = self.prepare_image(tick_data)
+        #print(np.shape(image)) 1,3,160,704
 
-        #print(batch.shape) # torch.Size([1, 160, 960, 3]) -> transpose
+        ### DEBUGGING
+        # Convert the tensor to a PIL image
+        print(image.shape)
+        img_pil = transforms.ToPILImage()(image[0,:,:,:])
+
+        # Display the image
+        img_pil.save("D:\\a\\c.png")
+
+        img = tick_data["rgb"]
+        print(img.shape)
+        batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1,3).transpose(2,3).float() #
+
+        # TODO Julians Preprocessing should reflect that
+        # print(batch.shape) # torch.Size([1, 160, 960, 3]) -> transpose(1,3).transpose(2,3)
+
+
+        ### FOR DEBUGGING, this is how the images look like. TODO Is it equal to the processing of the Trainingdata?
+        # Convert the tensor to a PIL image
+        print(batch.shape)
+        img_pil = transforms.ToPILImage()(batch[0,:,:,:])
+
+        # Display the image
+        img_pil.save("D:\\a\\a.png")
 
 
 
-        # HARDCODED PRERPOCESSING
+        # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
         norm_batch = normalize_batch(batch).to(device)
 
+        ### FOR DEBUGGING, this is how the images look like. TODO Is it equal to the processing of the Trainingdata?
+        # Convert the tensor to a PIL image
+        print(norm_batch.shape)
+        img_pil = transforms.ToPILImage()(norm_batch[0,:,:,:])
 
-        # TODO: forward pass
+        # Display the image
+        img_pil.save("D:\\a\\b.png")
+
+        ########################################## TODO: forward pass, ASSIGN COMMANDS (Optionaly, also use a controller depending on the output)
+
         # TODO: EVAL() call
         with torch.no_grad():
             outputs_ = self.net(norm_batch)
-            #TODO: ADD FORWARD PASS
+        ###############################################################################
 
-        #TODO: ASSIGN COMMANDS
-        print(outputs_)
-        steer, throttle, brake = outputs_
-        #steer, throttle, brake = (0,0,0)
+        #print(outputs_)
+        throttle, steer, brake = outputs_
 
+        if is_stuck and self.forced_move==1: # no steer for initial frame when unblocking
+            steer = 0.0
 
+        # INTERIA steer modulation # TODO Test if it works
+        if brake or is_stuck:
+            steer *= self.steer_damping
+        if (throttle < 0.1):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
+            self.stuck_detector += 1
+        elif (throttle > 0.1 and is_stuck == False):
+            self.stuck_detector = 0
+            self.forced_move = 0
 
+        # They set target speed of 14.4 for controller
+        if is_stuck:
+            throttle = 0.5
 
-
-
-
+        # Create Carla Controls
         control = carla.VehicleControl()
         control.steer = float(steer)
         control.throttle = float(throttle)
         control.brake = float(brake)
-
+        print(control)
         self.control = control
 
         self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
@@ -447,6 +485,18 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             
         image = np.asarray(image)
         cropped_image = image[start_y:start_y+crop_y, start_x:start_x+crop_x]
+
+        # TODO CHECK OUTPUT OF THIS FUNCTION
+        #img_pil = Image.fromarray(cropped_image,"RGB")
+        #np.save(cropped_image, "D:\\a\\a.png")
+        #img_pil.save("D:\\a\\a.png")
+
+        # Convert the tensor to a PIL image
+        #img_pil = transforms.ToPILImage()(image)
+
+        # Display the image
+        #img_pil.save("D:\\a\\a.png")
+
         return cropped_image
 
     def shift_x_scale_crop(self, image, scale, crop, crop_shift=0):
