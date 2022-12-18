@@ -2,6 +2,7 @@ import torch.nn as nn
 import torchvision
 import torch
 
+
 class MyResnet(nn.Module):
 
     def __init__(self):
@@ -16,30 +17,24 @@ class MyResnet(nn.Module):
 
         # Regression Heads for Throttle, Brake and Steering
         self.thr_head = nn.Sequential(
-            nn.Linear(num_ftrs, 50),
-            nn.Tanh(),
-            nn.Linear(50, 1),
+            nn.Linear(num_ftrs, 1),
             nn.Sigmoid()  # [0,1] Range Output
         )
 
         self.brk_head = nn.Sequential(
-            nn.Linear(num_ftrs, 50),
-            nn.Tanh(),
-            nn.Linear(50, 1),
+            nn.Linear(num_ftrs, 1),
             nn.Sigmoid()  # [0,1] Range Output
         )
 
         self.str_head = nn.Sequential(
-            nn.Linear(num_ftrs, 50),
-            nn.Tanh(),
-            nn.Linear(50, 1),
+            nn.Linear(num_ftrs, 1),
             nn.Tanh()  # [-1,1] Range Output
         )
 
     # Forward Pass of the Model
     def forward(self, x):
         x = self.net(x)
-        x = self.net.fc(x)
+        # x = self.net.fc(x)
         return self.thr_head(x), self.str_head(x), self.brk_head(x)  # 3 Outputs since we have 3 Heads
 
     def load_weights(self):
