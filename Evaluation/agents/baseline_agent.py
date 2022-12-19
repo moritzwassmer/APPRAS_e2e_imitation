@@ -65,17 +65,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.iou_treshold_nms = self.config.iou_treshold_nms # Iou threshold used for Non Maximum suppression on the Bounding Box predictions.
 
 
-        ################################## TODO: LOAD MODEL FILE
+        # LOAD MODEL FILE
         from models.rgb_baseline import MyResnet
-
-        """
-        the_model = TheModelClass(*args, **kwargs)
-        the_model.load_state_dict(torch.load(PATH))
-        """
         net = MyResnet()
         net.load_state_dict(torch.load("C:\\Users\\morit\\OneDrive\\UNI\\Master\\WS22\\APP-RAS\\Programming\\Evaluation\\agents\\models\\rgb_resnet.pth"))
 
         self.net = net.cuda()
+
+        self.debug_counter = 0
 
         ################################################################
 
@@ -248,7 +245,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # TODO DEBUGGING
         img = cv2.cvtColor(tick_data['rgb'], cv2.COLOR_RGB2BGR)
-        cv2.imwrite(str("D:\\a\\a.png" ), img) # TODO
+        if self.debug_counter < 1:
+            cv2.imwrite(str("D:\\a\\a.png" ), img) # TODO
+            self.debug_counter +=1
 
         # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
         norm_batch = normalize_batch(batch).to(device)
