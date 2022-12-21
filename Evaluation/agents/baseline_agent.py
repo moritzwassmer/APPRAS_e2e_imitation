@@ -210,7 +210,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
     @torch.inference_mode() # Faster version of torch_no_grad
     def run_step(self, input_data, timestamp):
         self.step += 1
-        print(self.step)
+
 
         if not self.initialized:
             self._init()
@@ -237,6 +237,16 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             is_stuck = True
             self.forced_move += 1
 
+        if self.forced_move == self.config.creep_duration:
+            self.forced_move = 0
+            self.stuck_detector = 0
+
+        print(self.step)
+        print(self.stuck_detector)
+        print(self.forced_move)
+        print(is_stuck)
+        print("\n")
+
         ### PREPROCESSING
 
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -262,11 +272,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         throttle, steer, brake = outputs_
 
         ### INTERIA STEER MODULATION # TODO Test if it works
-        if is_stuck and self.forced_move==1: # no steer for initial frame when unblocking
-            steer = 0.0
 
-        if brake or is_stuck:
-            steer *= self.steer_damping
         if (throttle < 0.1):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
             self.stuck_detector += 1
         elif (throttle > 0.1 and is_stuck == False):
@@ -277,7 +283,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         control = carla.VehicleControl()
         control.steer = float(steer)
         if is_stuck:
-            control.throttle = 0.5
+            control.throttle = 0.3
             control.brake = 0
         else:
             control.throttle = float(throttle)
