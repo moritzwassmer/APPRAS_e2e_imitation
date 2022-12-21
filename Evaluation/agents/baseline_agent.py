@@ -35,7 +35,7 @@ def normalize_batch(tensors):
     preprocess = transforms.Compose([
         transforms.ToPILImage(),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.229, 0.224, 0.225]),
     ])
 
     liste = []
@@ -51,6 +51,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.config_path = path_to_conf_file
         self.step = -1
         self.initialized = False
+
 
 
         # setting machine to avoid loading files
@@ -209,6 +210,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
     @torch.inference_mode() # Faster version of torch_no_grad
     def run_step(self, input_data, timestamp):
         self.step += 1
+        print(self.step)
 
         if not self.initialized:
             self._init()
@@ -240,7 +242,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         img = tick_data["rgb"]
-        print(img.shape)
+        #print(img.shape)
         batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1,3).transpose(2,3).float() #
 
         # TODO DEBUGGING
@@ -271,15 +273,15 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.stuck_detector = 0
             self.forced_move = 0
 
-        # They set target speed of 14.4 for controller
-        if is_stuck:
-            throttle = 0.5
-
         ### CERATE CARLA CONTROLS
         control = carla.VehicleControl()
         control.steer = float(steer)
-        control.throttle = float(throttle)
-        control.brake = float(brake)
+        if is_stuck:
+            control.throttle = 0.5
+            control.brake = 0
+        else:
+            control.throttle = float(throttle)
+            control.brake = float(brake)
         print(control)
         self.control = control
 
