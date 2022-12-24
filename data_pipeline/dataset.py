@@ -16,7 +16,7 @@ https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
 
 class CARLADataset(Dataset):
 
-    def __init__(self, root_dir, config, transform=None):
+    def __init__(self, root_dir, config):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -26,7 +26,6 @@ class CARLADataset(Dataset):
                 on a sample.
         """
         self.root_dir = root_dir
-        self.transform = transform
         self.used_inputs = config["used_inputs"]
         self.used_measurements = config["used_measurements"]
         self.seq_len = config["seq_len"]
@@ -70,9 +69,6 @@ class CARLADataset(Dataset):
             for meas_idx, meas in enumerate(self.used_measurements):
                 sample[meas] = data[meas_idx]
 
-        if self.transform:
-            sample = self.transform(sample)
-
         return sample
 
 
@@ -127,6 +123,8 @@ class CARLADataset(Dataset):
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
+            # reshape to #channels; height; width
+            data = data.reshape([3] + list(data.shape)[:-1])
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)
@@ -154,7 +152,7 @@ class CARLADataset(Dataset):
 
 class CARLADatasetMultiProcessing(Dataset):
 
-    def __init__(self, root_dir, config, transform=None):
+    def __init__(self, root_dir, config):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -164,7 +162,6 @@ class CARLADatasetMultiProcessing(Dataset):
                 on a sample.
         """
         self.root_dir = root_dir
-        self.transform = transform
         self.used_inputs = np.array(config["used_inputs"])# .astype(np.string_)
         self.used_measurements = np.array(config["used_measurements"])# .astype(np.string_)
         self.seq_len = config["seq_len"]
@@ -208,9 +205,6 @@ class CARLADatasetMultiProcessing(Dataset):
             for meas_idx, meas in enumerate(self.used_measurements):
                 sample[meas] = data[meas_idx]
 
-        if self.transform:
-            sample = self.transform(sample)
-
         return sample
 
 
@@ -266,6 +260,8 @@ class CARLADatasetMultiProcessing(Dataset):
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
+            # reshape to #channels; height; width
+            data = data.reshape([3] + list(data.shape)[:-1])
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)
