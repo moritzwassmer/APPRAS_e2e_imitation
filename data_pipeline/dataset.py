@@ -89,45 +89,16 @@ class CARLADataset(Dataset):
                         df = pd.concat([df, df_temp], axis=0, ignore_index=True)
                     df_temp = pd.DataFrame()
                     df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    if input_type in used_inputs:
-                        df_temp[input_type] = sorted(files)
+                    df_temp[input_type] = sorted(files)
                 else:
                     if df_temp.empty:
                         df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
                     if len(files) == len(df_temp):
-                        if input_type in used_inputs:
-                            df_temp[input_type] = sorted(files)
+                        df_temp[input_type] = sorted(files)
                     else:
                         print(f"Varying number files among input types: {root}")
         df = pd.concat([df, df_temp], axis=0, ignore_index=True)
-        return df
-
-
-    def __create_metadata_df_old(self, root_dir, used_inputs):
-        """
-        Creates the metadata (i.e. filenames) based on the the data root directory.
-        This root directory is supposed to contain folders for individual routes and those folder
-        contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
-        This function assumes that for all routes the same measurements/sensors types were recorded!
-
-        Comment: Function could probably be cleaner using os.path.walk()...
-        """
-        dirs = os.listdir(root_dir)
-        route_folders = [dir for dir in dirs if not os.path.isfile(os.path.join(root_dir, dir))]
-        sensor_folders = [dir for dir in os.listdir(os.path.join(root_dir, route_folders[0])) if dir in used_inputs]
-        columns = ["route"] + sensor_folders
-        df_meta = pd.DataFrame(columns=columns)
-        for route_folder in route_folders:
-            meta_data_route = []
-            for sensor_folder in sensor_folders:
-                meta_data_route.append(sorted(os.listdir(os.path.join(root_dir, route_folder, sensor_folder))))
-            meta_data_route.insert(0, [route_folder]*len(meta_data_route[0]))
-            num_entries = np.array([len(sublist) for sublist in meta_data_route])
-            if not np.all(num_entries == num_entries[0]):
-                print(f"{route_folder} has varying number of data files among input folders. It got discarded from the dataset.")
-                continue
-            df_meta = pd.concat([df_meta, pd.DataFrame(columns=columns, data=np.transpose(meta_data_route))], ignore_index=True)        
-        return df_meta
+        return df[["dir"] + used_inputs]
     
 
     def __get_file_path_from_df(self, input_idx, data_point_idx):
