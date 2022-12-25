@@ -10,7 +10,6 @@ import json
 """
 Inspiration from:
 https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
-
 """
 
 
