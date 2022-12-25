@@ -43,7 +43,7 @@ class WeightedSampler(Sampler):
                 have enough previous/lagged datapoint with respect to seq_len for each route.
         """
         df_meta_data, seq_len = self.dataset.df_meta_data, self.dataset.seq_len
-        boarders = df_meta_data["route"].value_counts().sort_index().to_numpy()
+        boarders = df_meta_data["dir"].value_counts().sort_index().to_numpy()
         boarders_cumsum = np.cumsum(boarders) - 1
         boarders_cumsum = np.insert(boarders_cumsum, 0, 0)
         restricted_idxs = []
