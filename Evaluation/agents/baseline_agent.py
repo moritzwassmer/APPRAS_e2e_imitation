@@ -228,7 +228,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
             return self.control
 
-        # INTERIA
+        # INERTIA
         is_stuck = False
         # divide by 2 because we process every second frame
         # 1100 = 55 seconds * 20 Frames per second, we move for 1.5 second = 30 frames to unblock
@@ -255,6 +255,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         #print(img.shape)
         batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1,3).transpose(2,3).float() #
 
+
         # TODO DEBUGGING
         img = cv2.cvtColor(tick_data['rgb'], cv2.COLOR_RGB2BGR)
         if self.debug_counter < 1:
@@ -263,7 +264,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
         norm_batch = normalize_batch(batch).to(device)
-
+        print(norm_batch.shape)
         #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
 
         with torch.no_grad():
