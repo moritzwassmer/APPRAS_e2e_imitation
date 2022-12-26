@@ -10,13 +10,12 @@ import json
 """
 Inspiration from:
 https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
-
 """
 
 
 class CARLADataset(Dataset):
 
-    def __init__(self, root_dir, config, transform=None):
+    def __init__(self, root_dir, config):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -26,7 +25,6 @@ class CARLADataset(Dataset):
                 on a sample.
         """
         self.root_dir = root_dir
-        self.transform = transform
         self.used_inputs = config["used_inputs"]
         self.used_measurements = config["used_measurements"]
         self.seq_len = config["seq_len"]
@@ -70,11 +68,7 @@ class CARLADataset(Dataset):
             for meas_idx, meas in enumerate(self.used_measurements):
                 sample[meas] = data[meas_idx]
 
-        if self.transform:
-            sample = self.transform(sample)
-
         return sample
-
 
     def __create_metadata_df(self, root_dir, used_inputs):
         """
@@ -82,30 +76,36 @@ class CARLADataset(Dataset):
         This root directory is supposed to contain folders for individual routes and those folder
         contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
         This function assumes that for all routes the same measurements/sensors types were recorded!
-
-        Comment: Function could probably be cleaner using os.path.walk()...
         """
-        dirs = os.listdir(root_dir)
-        route_folders = [dir for dir in dirs if not os.path.isfile(os.path.join(root_dir, dir))]
-        sensor_folders = [dir for dir in os.listdir(os.path.join(root_dir, route_folders[0])) if dir in used_inputs]
-        columns = ["route"] + sensor_folders
-        df_meta = pd.DataFrame(columns=columns)
-        for route_folder in route_folders:
-            meta_data_route = []
-            for sensor_folder in sensor_folders:
-                meta_data_route.append(sorted(os.listdir(os.path.join(root_dir, route_folder, sensor_folder))))
-            meta_data_route.insert(0, [route_folder]*len(meta_data_route[0]))
-            num_entries = np.array([len(sublist) for sublist in meta_data_route])
-            if not np.all(num_entries == num_entries[0]):
-                print(f"{route_folder} has varying number of data files among input folders. It got discarded from the dataset.")
-                continue
-            df_meta = pd.concat([df_meta, pd.DataFrame(columns=columns, data=np.transpose(meta_data_route))], ignore_index=True)        
-        return df_meta
+        df = pd.DataFrame()
+        df_temp = pd.DataFrame()
+        for (root, dirs, files) in os.walk(root_dir, topdown=True):
+            if not dirs:
+                input_type = root.split(os.sep)[-1]
+                if df_temp.columns.__contains__(input_type):
+                    if df.empty:
+                        df = df_temp
+                    else:
+                        df = pd.concat([df, df_temp], axis=0, ignore_index=True)
+                    df_temp = pd.DataFrame()
+                    df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
+                    df_temp[input_type] = sorted(files)
+                else:
+                    if df_temp.empty:
+                        df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
+                    if len(files) == len(df_temp):
+                        df_temp[input_type] = sorted(files)
+                    else:
+                        print(f"Varying number files among input types: {root}")
+        df = pd.concat([df, df_temp], axis=0, ignore_index=True)
+        return df[["dir"] + used_inputs]
     
+
     def __get_file_path_from_df(self, input_idx, data_point_idx):
         route = self.df_meta_data.iloc[data_point_idx, 0]
         sensor, file_name = self.df_meta_data.columns[input_idx], self.df_meta_data.iloc[data_point_idx, input_idx]
-        file_path = os.path.join(self.root_dir, route, sensor, file_name)
+        # file_path = os.path.join(self.root_dir, route, sensor, file_name)
+        file_path = os.path.join(route, sensor, file_name)
         return file_path
 
 
@@ -123,10 +123,14 @@ class CARLADataset(Dataset):
         """
         Loads the data that can be found in the given path.
         """
+        if not os.path.isfile(path):
+            print(f"Path is not a file: {path}")
         file_format = os.path.splitext(path)[1]
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
+            # reshape to #channels; height; width
+            data = data.reshape([3] + list(data.shape)[:-1])
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)
@@ -136,13 +140,14 @@ class CARLADataset(Dataset):
             data = data[1]
 
         return data
-    
+
     def __get_data_shapes(self):
         path_parts = self.df_meta_data.iloc[0].to_numpy()
         input_types = self.df_meta_data.columns.to_numpy()
         shapes = []
         for i in range(1, len(path_parts)):
-            path = os.path.join(self.root_dir, path_parts[0], input_types[i], path_parts[i])
+            # path = os.path.join(self.root_dir, path_parts[0], input_types[i], path_parts[i])
+            path = os.path.join(path_parts[0], input_types[i], path_parts[i])
             data = self.load_data_from_path(path)
             if isinstance(data, np.ndarray):
                 shapes.append(list(data.shape))
@@ -154,7 +159,7 @@ class CARLADataset(Dataset):
 
 class CARLADatasetMultiProcessing(Dataset):
 
-    def __init__(self, root_dir, config, transform=None):
+    def __init__(self, root_dir, config):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -164,7 +169,6 @@ class CARLADatasetMultiProcessing(Dataset):
                 on a sample.
         """
         self.root_dir = root_dir
-        self.transform = transform
         self.used_inputs = np.array(config["used_inputs"])# .astype(np.string_)
         self.used_measurements = np.array(config["used_measurements"])# .astype(np.string_)
         self.seq_len = config["seq_len"]
@@ -208,9 +212,6 @@ class CARLADatasetMultiProcessing(Dataset):
             for meas_idx, meas in enumerate(self.used_measurements):
                 sample[meas] = data[meas_idx]
 
-        if self.transform:
-            sample = self.transform(sample)
-
         return sample
 
 
@@ -241,6 +242,7 @@ class CARLADatasetMultiProcessing(Dataset):
         return df_meta
     
 
+
     def __get_file_path_from_df(self, input_idx, data_point_idx):
         route = self.df_meta_data.iloc[data_point_idx, 0]
         sensor, file_name = self.df_meta_data.columns[input_idx], self.df_meta_data.iloc[data_point_idx, input_idx]
@@ -266,6 +268,8 @@ class CARLADatasetMultiProcessing(Dataset):
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
+            # reshape to #channels; height; width
+            data = data.reshape([3] + list(data.shape)[:-1])
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)
