@@ -262,8 +262,16 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             cv2.imwrite(str("D:\\a\\a.png" ), img) # TODO
             self.debug_counter +=1
 
+        mean = torch.tensor([79.6657, 81.5673, 105.6161])
+        std = torch.tensor([66.8309, 60.1001, 66.2220])
+
+        transform_norm = transforms.Compose([
+            transforms.Normalize(mean, std)
+        ])
+
+
         # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
-        norm_batch = normalize_batch(batch).to(device)
+        norm_batch = transform_norm(batch).to(device)
         print(norm_batch.shape)
         #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
 
