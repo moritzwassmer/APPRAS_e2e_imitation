@@ -29,21 +29,6 @@ from torchvision import transforms
 def get_entry_point():
     return 'HybridAgent'
 
-# TODO : DELETE AND REPLACE WITH PREPROCESSING OF JULIAN
-def normalize_batch(tensors):
-
-    preprocess = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.229, 0.224, 0.225]),
-    ])
-
-    liste = []
-    for tensor in tensors:
-        tensor = preprocess(tensor)  # * 1/255
-        liste.append(tensor)
-    return torch.stack(liste)
-
 
 class HybridAgent(autonomous_agent.AutonomousAgent):
     def setup(self, path_to_conf_file, route_index=None):
@@ -150,7 +135,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         rgb = []
         for pos in ['left', 'front', 'right']:
             rgb_cam = 'rgb_' + pos
-            rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
+            rgb_pos = input_data[rgb_cam][1][:, :, :3]#cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
             rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width, self.config.img_width, self.config.img_resolution[0], self.config.img_resolution[0])
             rgb.append(rgb_pos)
         rgb = np.concatenate(rgb, axis=1)
@@ -257,13 +242,18 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         print(batch.shape)
 
         # TODO DEBUGGING
+
         if self.debug_counter < 1:
             pil_img = img.astype(np.uint8).reshape(160,960,3)
             transform = transforms.Compose([transforms.ToPILImage()])
             print(pil_img.shape)
             pil_img = transform(pil_img)
             pil_img.show()
+            self.debug_counter += 1
 
+
+
+        # B, G, R
         mean = torch.tensor([79.6657, 81.5673, 105.6161])
         std = torch.tensor([66.8309, 60.1001, 66.2220])
 
@@ -271,21 +261,21 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             transforms.Normalize(mean, std)
         ])
 
-        norm_batch = transform_norm(batch).to(device)
+        norm_batch = transform_norm(batch)#.to(device)
         print(norm_batch.shape)
-        """
-        if self.debug_counter < 2:
-            #Convert the tensor to a PIL image
-            img = norm_batch.transpose(2, 3).transpose(1, 3)[0]#.numpy()#.astype(np.uint8) #
-            #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) #.numpy().astype(np.uint8)
-            img = transforms.ToPILImage()(img)
 
-            # Display the image
-            img.show()
+        """
+        if self.debug_counter < 2: # TODO FLOAT NOT SUPPORT --> TO PIL
+            img = norm_batch[0]
+            pil_img = img.numpy().reshape(160,960,3)
+            transform = transforms.Compose([transforms.ToPILImage()])
+            print(pil_img.shape)
+            pil_img = transform(pil_img)
+            pil_img.show()
         """
 
         #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
-
+        norm_batch = norm_batch.to(device)
         with torch.no_grad():
             outputs_ = self.net(norm_batch)
 
