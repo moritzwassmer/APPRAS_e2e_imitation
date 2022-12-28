@@ -251,16 +251,11 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-        img = tick_data["rgb"]
-        #print(img.shape)
-        batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1,3).transpose(2,3).float() #
-
+        img = tick_data['rgb']
 
         # TODO DEBUGGING
-        #img = cv2.cvtColor(tick_data['rgb'], cv2.COLOR_RGB2BGR)
-        img = tick_data['rgb']
         if self.debug_counter < 1:
-            cv2.imwrite(str("D:\\a\\a.png" ), img) # TODO
+            #cv2.imwrite(str("D:\\a\\a.png" ), img)
             self.debug_counter +=1
 
             print(img)
@@ -272,6 +267,24 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             # Display the image
             img_pil.show()
 
+
+
+        batch = torch.unsqueeze(torch.tensor(img), dim=0)#.transpose(1, 3).transpose(2, 3)#.float()  #
+        print(batch.shape)
+
+        if self.debug_counter < 2:
+            #Convert the tensor to a PIL image
+            img = batch[0].numpy().astype(np.uint8)
+            #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) #.numpy().astype(np.uint8)
+            img = transforms.ToPILImage()(img)
+
+            # Display the image
+            img.show()
+
+        # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
+        batch_transf = batch.transpose(1, 3).transpose(2, 3).float()
+
+
         mean = torch.tensor([79.6657, 81.5673, 105.6161])
         std = torch.tensor([66.8309, 60.1001, 66.2220])
 
@@ -280,13 +293,17 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         ])
 
 
-        # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
-        norm_batch = transform_norm(batch).to(device)
-        #if self.debug_counter < 2:
-            # Convert the tensor to a PIL image
-            #img_pil = transforms.ToPILImage()(norm_batch[0, :, :, :])
+        norm_batch = transform_norm(batch_transf).to(device)
+        print(norm_batch.shape)
+
+        if self.debug_counter < 2:
+            #Convert the tensor to a PIL image
+            img = norm_batch.transpose(2, 3).transpose(1, 3)[0]#.numpy()#.astype(np.uint8) #
+            #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) #.numpy().astype(np.uint8)
+            img = transforms.ToPILImage()(img)
+
             # Display the image
-            #img_pil.show()
+            img.show()
 
         print(norm_batch.shape)
         #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
