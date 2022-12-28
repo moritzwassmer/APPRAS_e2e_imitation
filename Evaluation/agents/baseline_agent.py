@@ -281,7 +281,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         throttle, steer, brake = outputs_
 
-        ### INTERIA STEER MODULATION # TODO Test if it works
+        ### INTERIA STEER MODULATION
 
         if (throttle < 0.1):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
             self.stuck_detector += 1
