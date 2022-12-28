@@ -257,10 +257,20 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
         # TODO DEBUGGING
-        img = cv2.cvtColor(tick_data['rgb'], cv2.COLOR_RGB2BGR)
+        #img = cv2.cvtColor(tick_data['rgb'], cv2.COLOR_RGB2BGR)
+        img = tick_data['rgb']
         if self.debug_counter < 1:
             cv2.imwrite(str("D:\\a\\a.png" ), img) # TODO
             self.debug_counter +=1
+
+            print(img)
+            print(type(img))
+
+            # Convert the tensor to a PIL image
+            #img_pil = transforms.ToPILImage()(batch[0, :, :, :])
+            img_pil = transforms.ToPILImage()(img)
+            # Display the image
+            img_pil.show()
 
         mean = torch.tensor([79.6657, 81.5673, 105.6161])
         std = torch.tensor([66.8309, 60.1001, 66.2220])
@@ -272,6 +282,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # HARDCODED PRERPOCESSING TODO Replace with Julians preprocessing when finished
         norm_batch = transform_norm(batch).to(device)
+        #if self.debug_counter < 2:
+            # Convert the tensor to a PIL image
+            #img_pil = transforms.ToPILImage()(norm_batch[0, :, :, :])
+            # Display the image
+            #img_pil.show()
+
         print(norm_batch.shape)
         #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
 
