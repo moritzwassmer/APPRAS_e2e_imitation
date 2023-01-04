@@ -77,19 +77,19 @@ class CARLADataset(Dataset):
         contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
         This function assumes that for all routes the same measurements/sensors types were recorded!
         """
-        df = pd.DataFrame()
+        df_temp_list = []
         df_temp = pd.DataFrame()
         for (root, dirs, files) in os.walk(root_dir, topdown=True):
+            # Current folder contains the files
             if not dirs:
                 input_type = root.split(os.sep)[-1]
+                # New route/szenario
                 if df_temp.columns.__contains__(input_type):
-                    if df.empty:
-                        df = df_temp
-                    else:
-                        df = pd.concat([df, df_temp], axis=0, ignore_index=True)
+                    df_temp_list.append(df_temp)
                     df_temp = pd.DataFrame()
                     df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
                     df_temp[input_type] = sorted(files)
+                # Append input type to existing route/szenario
                 else:
                     if df_temp.empty:
                         df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
@@ -97,9 +97,10 @@ class CARLADataset(Dataset):
                         df_temp[input_type] = sorted(files)
                     else:
                         print(f"Varying number files among input types: {root}")
-        df = pd.concat([df, df_temp], axis=0, ignore_index=True)
+        df_temp_list.append(df_temp)
+        df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
         return df[["dir"] + used_inputs]
-    
+            
 
     def __get_file_path_from_df(self, input_idx, data_point_idx):
         route = self.df_meta_data.iloc[data_point_idx, 0]
