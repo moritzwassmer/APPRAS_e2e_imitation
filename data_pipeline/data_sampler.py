@@ -23,7 +23,7 @@ class WeightedSampler(Sampler):
         self.dataset = dataset
         self.indices = list(range(len(dataset)))
         self.num_samples = len(dataset)
-        restricted_idxs = self.__get_restricted_indices()
+        restricted_idxs = self.get_restricted_indices()
         weights = np.ones(dataset.__len__()) * 1 / (dataset.__len__() - len(restricted_idxs))
         weights[restricted_idxs] = 0
         
@@ -36,7 +36,7 @@ class WeightedSampler(Sampler):
             yield index[count]
             count += 1
 
-    def __get_restricted_indices(self):
+    def get_restricted_indices(self):
         """
         Return:
                 restricted_idx (list): List contains idxs that shall not be sampled because they don't
