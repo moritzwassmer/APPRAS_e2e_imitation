@@ -15,7 +15,7 @@ https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
 
 class CARLADataset(Dataset):
 
-    def __init__(self, root_dir, config):
+    def __init__(self, root_dir, df_meta_data, config):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -28,11 +28,20 @@ class CARLADataset(Dataset):
         self.used_inputs = config["used_inputs"]
         self.used_measurements = config["used_measurements"]
         self.seq_len = config["seq_len"]
-        self.df_meta_data = self.__create_metadata_df(root_dir, self.used_inputs)
+        self.df_meta_data = df_meta_data
         self.data_shapes = self.__get_data_shapes()
 
     def __len__(self):
         return len(self.df_meta_data)
+
+    def get_statistics(self):
+        df_meta_data = self.df_meta_data
+        df_meta_data_full_paths = df_meta_data[df_meta_data.columns[1:]].apply(lambda x: df_meta_data["dir"] + os.sep + x.name + os.sep + x)
+        df_meta_data_sizes = df_meta_data_full_paths.applymap(lambda path: os.path.getsize(path))
+        df_stats = (df_meta_data_sizes.sum() / 10**9).to_frame().T
+        df_stats.columns = df_stats.columns + "_in_GB" 
+        df_stats["time_hours"] = len(df_meta_data) / (2 * 60 * 60)
+        return df_stats
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
@@ -69,37 +78,6 @@ class CARLADataset(Dataset):
                 sample[meas] = data[meas_idx]
 
         return sample
-
-    def __create_metadata_df(self, root_dir, used_inputs):
-        """
-        Creates the metadata (i.e. filenames) based on the the data root directory.
-        This root directory is supposed to contain folders for individual routes and those folder
-        contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
-        This function assumes that for all routes the same measurements/sensors types were recorded!
-        """
-        df_temp_list = []
-        df_temp = pd.DataFrame()
-        for (root, dirs, files) in os.walk(root_dir, topdown=True):
-            # Current folder contains the files
-            if not dirs:
-                input_type = root.split(os.sep)[-1]
-                # New route/szenario
-                if df_temp.columns.__contains__(input_type):
-                    df_temp_list.append(df_temp)
-                    df_temp = pd.DataFrame()
-                    df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    df_temp[input_type] = sorted(files)
-                # Append input type to existing route/szenario
-                else:
-                    if df_temp.empty:
-                        df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    if len(files) == len(df_temp):
-                        df_temp[input_type] = sorted(files)
-                    else:
-                        print(f"Varying number files among input types: {root}")
-        df_temp_list.append(df_temp)
-        df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
-        return df[["dir"] + used_inputs]
             
 
     def __get_file_path_from_df(self, input_idx, data_point_idx):
