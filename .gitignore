@@ -108,3 +108,4 @@ ipython_config.py
 *.pt
 *.zip
 *.pkl
+*.pth
