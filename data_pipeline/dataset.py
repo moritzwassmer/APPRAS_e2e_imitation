@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 from torchvision import transforms
+import datetime
 import torch
 import pandas as pd
 import numpy as np
@@ -38,9 +39,11 @@ class CARLADataset(Dataset):
         df_meta_data = self.df_meta_data
         df_meta_data_full_paths = df_meta_data[df_meta_data.columns[1:]].apply(lambda x: df_meta_data["dir"] + os.sep + x.name + os.sep + x)
         df_meta_data_sizes = df_meta_data_full_paths.applymap(lambda path: os.path.getsize(path))
-        df_stats = (df_meta_data_sizes.sum() / 10**9).to_frame().T
+        df_stats = (df_meta_data_sizes.sum() / 10**9).round(2).to_frame().T # 10**9 or GB instead of GiB # 1073741824
         df_stats.columns = df_stats.columns + "_in_GB" 
-        df_stats["time_hours"] = len(df_meta_data) / (2 * 60 * 60)
+        # df_stats["time_hours"] = len(df_meta_data) / (2 * 60 * 60)
+        df_stats["driving_time"] = str(datetime.timedelta(seconds=int(len(df_meta_data) / 2)))
+        df_stats["%_of_entire_data"] = round((len(df_meta_data) / 258866 * 100), 2)
         return df_stats
 
     def __getitem__(self, idx):
@@ -116,8 +119,10 @@ class CARLADataset(Dataset):
         elif file_format == ".npy":
             data = np.load(path, allow_pickle=True)
             # discard the weird single number for lidar
-            data = data[1]
-
+            # data = data[1]
+        elif file_format == ".npz":
+            with np.load(path, allow_pickle=True) as f:
+                data = f["arr_0"]
         return data
 
     def __get_data_shapes(self):
@@ -276,42 +281,4 @@ class CARLADatasetMultiProcessing(Dataset):
             shapes[idx] = [0]*(max_dim - len(shape)) + shape
         return np.array(shapes).astype(np.int_)
     
-
-
-# test commit
-
-# path_ege_data = os.path.join("data", "Dataset Ege")
-
-# config = {"used_inputs": ["rgb", "depth", "measurements"], 
-#         "used_measurements": ["speed", "steer", "throttle"],
-#         "seq_len": 1
-#         }
-
-# def transform(sample):
-#         """
-#         This function reshapes every input in a sample to be
-#         shape = [seq_len, data_shape]
-#         """
-#         for key in sample:
-#                 data_tensor = torch.Tensor(sample[key])
-#                 shape = list(data_tensor.shape)
-#                 shape.remove(config["seq_len"])
-#                 shape_new = [config["seq_len"]] + shape
-#                 sample[key] = data_tensor.reshape(shape_new)
-#         return sample
-
-# # data_transform = transforms.Compose([
-# #         torch.stack()
-# #         # transforms.ToTensor(),
-# #         # torch.reshape(config["seq_len"], ...)
-# #         # transforms.Normalize(mean=[0.485, 0.456, 0.406],
-# #         #                      std=[0.229, 0.224, 0.225])
-# # ])
-
-# dataset = CARLADataset(root_dir=path_ege_data, config=config, transform=None)
-# #weighted_sampler = WeightedSampler(dataset=dataset)
-# print(dataset.__len__())
-
-
-
 
