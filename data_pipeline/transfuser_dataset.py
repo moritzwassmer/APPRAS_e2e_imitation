@@ -13,6 +13,11 @@ import io
 
 from utils import get_vehicle_to_virtual_lidar_transform, get_vehicle_to_lidar_transform, get_lidar_to_vehicle_transform, get_lidar_to_bevimage_transform
 
+"""
+This is currently not working!
+Attempt: Copy the strategy of the TransFuser Dataset class to get multiprocessing working!
+"""
+
 class CARLADatasetTF(Dataset):
 
     def __init__(self, root, cols_meta, rows_meta, config, shared_dict=None):

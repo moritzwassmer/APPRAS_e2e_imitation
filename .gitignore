@@ -109,3 +109,6 @@ ipython_config.py
 *.zip
 *.pkl
 *.pth
+
+# tensorboard log files
+**/runs/

@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 from torchvision import transforms
+import datetime
 import torch
 import pandas as pd
 import numpy as np
@@ -38,9 +39,11 @@ class CARLADataset(Dataset):
         df_meta_data = self.df_meta_data
         df_meta_data_full_paths = df_meta_data[df_meta_data.columns[1:]].apply(lambda x: df_meta_data["dir"] + os.sep + x.name + os.sep + x)
         df_meta_data_sizes = df_meta_data_full_paths.applymap(lambda path: os.path.getsize(path))
-        df_stats = (df_meta_data_sizes.sum() / 10**9).to_frame().T
+        df_stats = (df_meta_data_sizes.sum() / 10**9).round(2).to_frame().T # 10**9 or GB instead of GiB # 1073741824
         df_stats.columns = df_stats.columns + "_in_GB" 
-        df_stats["time_hours"] = len(df_meta_data) / (2 * 60 * 60)
+        # df_stats["time_hours"] = len(df_meta_data) / (2 * 60 * 60)
+        df_stats["driving_time"] = str(datetime.timedelta(seconds=int(len(df_meta_data) / 2)))
+        df_stats["%_of_entire_data"] = round((len(df_meta_data) / 258866 * 100), 2)
         return df_stats
 
     def __getitem__(self, idx):
@@ -116,8 +119,10 @@ class CARLADataset(Dataset):
         elif file_format == ".npy":
             data = np.load(path, allow_pickle=True)
             # discard the weird single number for lidar
-            data = data[1]
-
+            # data = data[1]
+        elif file_format == ".npz":
+            with np.load(path, allow_pickle=True) as f:
+                data = f["arr_0"]
         return data
 
     def __get_data_shapes(self):
