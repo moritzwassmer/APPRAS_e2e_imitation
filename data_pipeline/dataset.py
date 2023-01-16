@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 from torchvision import transforms
+import datetime
 import torch
 import pandas as pd
 import numpy as np
@@ -15,7 +16,7 @@ https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
 
 class CARLADataset(Dataset):
 
-    def __init__(self, root_dir, config):
+    def __init__(self, root_dir, df_meta_data, config):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -28,11 +29,22 @@ class CARLADataset(Dataset):
         self.used_inputs = config["used_inputs"]
         self.used_measurements = config["used_measurements"]
         self.seq_len = config["seq_len"]
-        self.df_meta_data = self.__create_metadata_df(root_dir, self.used_inputs)
+        self.df_meta_data = df_meta_data
         self.data_shapes = self.__get_data_shapes()
 
     def __len__(self):
         return len(self.df_meta_data)
+
+    def get_statistics(self):
+        df_meta_data = self.df_meta_data
+        df_meta_data_full_paths = df_meta_data[df_meta_data.columns[1:]].apply(lambda x: df_meta_data["dir"] + os.sep + x.name + os.sep + x)
+        df_meta_data_sizes = df_meta_data_full_paths.applymap(lambda path: os.path.getsize(path))
+        df_stats = (df_meta_data_sizes.sum() / 10**9).round(2).to_frame().T # 10**9 or GB instead of GiB # 1073741824
+        df_stats.columns = df_stats.columns + "_in_GB" 
+        # df_stats["time_hours"] = len(df_meta_data) / (2 * 60 * 60)
+        df_stats["driving_time"] = str(datetime.timedelta(seconds=int(len(df_meta_data) / 2)))
+        df_stats["%_of_entire_data"] = round((len(df_meta_data) / 258866 * 100), 2)
+        return df_stats
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
@@ -69,37 +81,6 @@ class CARLADataset(Dataset):
                 sample[meas] = data[meas_idx]
 
         return sample
-
-    def __create_metadata_df(self, root_dir, used_inputs):
-        """
-        Creates the metadata (i.e. filenames) based on the the data root directory.
-        This root directory is supposed to contain folders for individual routes and those folder
-        contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
-        This function assumes that for all routes the same measurements/sensors types were recorded!
-        """
-        df_temp_list = []
-        df_temp = pd.DataFrame()
-        for (root, dirs, files) in os.walk(root_dir, topdown=True):
-            # Current folder contains the files
-            if not dirs:
-                input_type = root.split(os.sep)[-1]
-                # New route/szenario
-                if df_temp.columns.__contains__(input_type):
-                    df_temp_list.append(df_temp)
-                    df_temp = pd.DataFrame()
-                    df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    df_temp[input_type] = sorted(files)
-                # Append input type to existing route/szenario
-                else:
-                    if df_temp.empty:
-                        df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    if len(files) == len(df_temp):
-                        df_temp[input_type] = sorted(files)
-                    else:
-                        print(f"Varying number files among input types: {root}")
-        df_temp_list.append(df_temp)
-        df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
-        return df[["dir"] + used_inputs]
             
 
     def __get_file_path_from_df(self, input_idx, data_point_idx):
@@ -138,8 +119,10 @@ class CARLADataset(Dataset):
         elif file_format == ".npy":
             data = np.load(path, allow_pickle=True)
             # discard the weird single number for lidar
-            data = data[1]
-
+            # data = data[1]
+        elif file_format == ".npz":
+            with np.load(path, allow_pickle=True) as f:
+                data = f["arr_0"]
         return data
 
     def __get_data_shapes(self):
@@ -298,42 +281,4 @@ class CARLADatasetMultiProcessing(Dataset):
             shapes[idx] = [0]*(max_dim - len(shape)) + shape
         return np.array(shapes).astype(np.int_)
     
-
-
-# test commit
-
-# path_ege_data = os.path.join("data", "Dataset Ege")
-
-# config = {"used_inputs": ["rgb", "depth", "measurements"], 
-#         "used_measurements": ["speed", "steer", "throttle"],
-#         "seq_len": 1
-#         }
-
-# def transform(sample):
-#         """
-#         This function reshapes every input in a sample to be
-#         shape = [seq_len, data_shape]
-#         """
-#         for key in sample:
-#                 data_tensor = torch.Tensor(sample[key])
-#                 shape = list(data_tensor.shape)
-#                 shape.remove(config["seq_len"])
-#                 shape_new = [config["seq_len"]] + shape
-#                 sample[key] = data_tensor.reshape(shape_new)
-#         return sample
-
-# # data_transform = transforms.Compose([
-# #         torch.stack()
-# #         # transforms.ToTensor(),
-# #         # torch.reshape(config["seq_len"], ...)
-# #         # transforms.Normalize(mean=[0.485, 0.456, 0.406],
-# #         #                      std=[0.229, 0.224, 0.225])
-# # ])
-
-# dataset = CARLADataset(root_dir=path_ege_data, config=config, transform=None)
-# #weighted_sampler = WeightedSampler(dataset=dataset)
-# print(dataset.__len__())
-
-
-
 
