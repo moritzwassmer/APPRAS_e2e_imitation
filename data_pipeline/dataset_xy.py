@@ -56,7 +56,7 @@ class CARLADatasetXY(Dataset):
             data = np.zeros(shape)
             idx_array = 0
             for data_point_idx in range(idx_lagged, idx + 1):
-                file_path = self.__get_file_path_from_df(input_idx, data_point_idx)
+                file_path = self.get_file_path_from_df(input_idx, data_point_idx)
                 data_t = self.load_data_from_path(file_path)
                 data[idx_array] = data_t
                 idx_array += 1
@@ -69,7 +69,7 @@ class CARLADatasetXY(Dataset):
             input_idx = list(self.df_meta_data.columns).index("measurements")
             idx_array = 0
             for data_point_idx in range(idx_lagged, idx + 1):
-                file_path = self.__get_file_path_from_df(input_idx, data_point_idx)
+                file_path = self.get_file_path_from_df(input_idx, data_point_idx)
                 data_t = self.load_data_from_path(file_path)
                 for meas_idx, meas in enumerate(self.used_measurements):
                     data[meas_idx, idx_array] = data_t[meas]
@@ -82,7 +82,7 @@ class CARLADatasetXY(Dataset):
         return x_sample, y_sample
             
 
-    def __get_file_path_from_df(self, input_idx, data_point_idx):
+    def get_file_path_from_df(self, input_idx, data_point_idx):
         route = self.df_meta_data.iloc[data_point_idx, 0]
         sensor, file_name = self.df_meta_data.columns[input_idx], self.df_meta_data.iloc[data_point_idx, input_idx]
         # file_path = os.path.join(self.root_dir, route, sensor, file_name)

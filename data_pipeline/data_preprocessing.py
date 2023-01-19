@@ -16,9 +16,9 @@ def prep_rgb(X_rgb):
     ])(X_rgb)
 
 def prep_speed(X_spd):
-    speed_mean = 2.250456762830466
-    speed_std = 0.3021584025489131
-    return ((X_spd - speed_mean)/ speed_std)
+    # speed_mean: 2.382234  old 2.250456762830466
+    # speed_std: 1.724884  old 0.3021584025489131
+    return ((X_spd - 2.382234)/ 1.724884)
     
 def prep_command(X_cmd):
     X_cmd = torch.where(X_cmd == -1, torch.tensor(0, dtype=X_cmd.dtype), X_cmd).to(torch.int64) # Replace by -1 by 0
