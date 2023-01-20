@@ -135,7 +135,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         rgb = []
         for pos in ['left', 'front', 'right']:
             rgb_cam = 'rgb_' + pos
-            rgb_pos = input_data[rgb_cam][1][:, :, :3]#cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
+            rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB) #input_data[rgb_cam][1][:, :, :3]#
             rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width, self.config.img_width, self.config.img_resolution[0], self.config.img_resolution[0])
             rgb.append(rgb_pos)
         rgb = np.concatenate(rgb, axis=1)
@@ -236,7 +236,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-        # BGR
+        # RGB
         img = tick_data['rgb'] # 160,960,3
         print(img.shape)
         img_batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1, 3).transpose(2, 3).float() #1, 3, 160, 960
@@ -252,11 +252,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             pil_img.show()
             self.debug_counter += 1
 
-        mean = torch.tensor([79.6657, 81.5673, 105.6161])
-        std = torch.tensor([66.8309, 60.1001, 66.2220])
+        mean = torch.tensor([105.6161, 81.5673, 79.6657])  # RGB
+        std = torch.tensor([66.2220, 60.1001, 66.8309])
 
         transform_norm = transforms.Compose([
-            transforms.Normalize(mean, std)
+            transforms.Normalize(mean, std),
+            transforms.Resize([224, 224])
         ])
 
         img_norm = transform_norm(img_batch)#.to(device)
@@ -281,8 +282,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         cmd_one_hot = torch.squeeze(cmd_one_hot).float().to(device)
 
         # TODO: SPEED
-        speed_mean = 2.250456762830466
-        speed_std = 0.30215840254891313
+        speed_mean = 2.382234  ##2.250456762830466
+        speed_std = 1.724884  ##0.30215840254891313
 
         spd = torch.tensor(tick_data['speed'])
         spd_norm = ((spd - speed_mean) / speed_std).float() # TODO
