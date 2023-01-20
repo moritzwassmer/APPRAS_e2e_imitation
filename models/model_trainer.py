@@ -71,7 +71,7 @@ class ModelTrainer:
             for batch_idx, (X_true, y_true) in enumerate(self.dataloader_train):
                 # forward
                 start_forward = time.time()
-                loss_list = self.forward_pass(X_true, y_true, writer, epoch)
+                loss_list = self.forward_pass(X_true, y_true)
                 loss = sum(loss_list) / 3
                 times_forward.append(time.time() - start_forward)
                 
@@ -98,7 +98,7 @@ class ModelTrainer:
                 self.model.eval()
                 
                 for batch_idx, (X_true, y_true) in enumerate(self.dataloader_test):
-                    loss_list = self.forward_pass(X_true, y_true, writer, epoch)
+                    loss_list = self.forward_pass(X_true, y_true)
                     batch_loss_list = [batch_loss + loss_.item() for batch_loss, loss_ in zip(batch_loss_list, loss_list)]
 
                 [val_loss_list[i].append(batch_loss_list[i] / len(self.dataloader_test)) for i in range(len(batch_loss_list))]   
@@ -109,7 +109,7 @@ class ModelTrainer:
             val_loss = np.mean(val_loss_list, axis=0)[-1]
             if val_loss < val_loss_min:
                 val_loss_min = val_loss
-                torch.save(self.model.state_dict(), 'resnet.pt')
+                torch.save(self.model.state_dict(), f"{self.model.__class__.__name__}.pt".lower())
 
             self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
             # Back to training
@@ -124,7 +124,7 @@ class ModelTrainer:
     def to_cuda_if_possible(self, data):
         return data.to(self.device) if self.device else data
  
-    def forward_pass(self, X_true, Y_true, writer, epoch):
+    def forward_pass(self, X_true, Y_true):
         # (optional) do preprocessing (squeezing is currently done in the models forward function)
         X_true["rgb"] = torch.squeeze(X_true["rgb"])
         X_true = [self.preprocessing[key](X_true[key]).float() for key in X_true]
@@ -134,9 +134,6 @@ class ModelTrainer:
         X_true = [self.to_cuda_if_possible(X_) for X_ in X_true]
         Y_true = [self.to_cuda_if_possible(Y_) for Y_ in Y_true]
 
-        # write model graph
-        # if epoch == 1:
-        #     writer.add_graph(self.model, *X_true) # throws error
 
         # forward pass
         self.optimizer.zero_grad()
@@ -156,12 +153,12 @@ class ModelTrainer:
 
 
     def upload_tensorboard_to_cloud(self, times_epoch):
-        dir_newest = sorted(os.listdir("runs"))[0]
+        dir_newest = sorted(os.listdir("runs"))[-1]
         df_stats_train = self.dataloader_train.dataset.get_statistics()
         df_stats_test = self.dataloader_test.dataset.get_statistics()
         description = f""" 
         Trained on towns: {", ".join(sorted(self.dataloader_train.dataset.df_meta_data["dir"].str.extract(r'(Town[0-9][0-9])')[0].unique()))}
-        Trained on size GB: {df_stats_train[df_stats_train.columns[:-2]].sum().sum()}
+        Trained on size GB: {round(df_stats_train[df_stats_train.columns[:-2]].sum().sum(), 2)}
         Trained on % of entire data: {df_stats_train["%_of_entire_data"].item()}
         Validated on towns: {", ".join(sorted(self.dataloader_test.dataset.df_meta_data["dir"].str.extract(r'(Town[0-9][0-9])')[0].unique()))}
         Validated on size GB: {df_stats_test[df_stats_test.columns[:-2]].sum().sum()}
