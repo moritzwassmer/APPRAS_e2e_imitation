@@ -113,3 +113,4 @@ ipython_config.py
 # tensorboard log files
 **/runs/
 *.pickle
+*.png

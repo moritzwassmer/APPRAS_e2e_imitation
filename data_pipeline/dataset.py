@@ -118,8 +118,9 @@ class CARLADataset(Dataset):
                 data = json.load(f)
         elif file_format == ".npy":
             data = np.load(path, allow_pickle=True)
-            # discard the weird single number for lidar
-            # data = data[1]
+            # if lidar
+            if data.shape == (2, ):
+                data = data[1]
         elif file_format == ".npz":
             with np.load(path, allow_pickle=True) as f:
                 data = f["arr_0"]

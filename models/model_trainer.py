@@ -6,6 +6,7 @@ import time
 import datetime
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 
 """
@@ -43,6 +44,7 @@ class ModelTrainer:
         self.df_speed_stats = None
 
         print(f"Model will be trained on: {self.device}")
+
 
     def run(self):
         """
@@ -121,28 +123,56 @@ class ModelTrainer:
         if self.upload_tensorboard:
             self.upload_tensorboard_to_cloud(times_epoch)
 
-    def to_cuda_if_possible(self, data):
-        return data.to(self.device) if self.device else data
+    def preprocess_on_the_fly(self, X_true, Y_true):
+        """
+        Takes X and Y as dictionaries and returns them as lists (sorted like the dict)
+        """
+        X_true["rgb"] = torch.squeeze(X_true["rgb"])
+        X_true = [self.preprocessing[key](X_true[key]).float() for key in X_true]
+        Y_true = [Y_true[key].float() for key in Y_true]
+        return X_true, Y_true
+
  
     def forward_pass(self, X_true, Y_true):
-        # (optional) do preprocessing (squeezing is currently done in the models forward function)
+        # (optional) do preprocessing
         X_true["rgb"] = torch.squeeze(X_true["rgb"])
         X_true = [self.preprocessing[key](X_true[key]).float() for key in X_true]
         Y_true = [Y_true[key].float() for key in Y_true]
         
-        # move to cuda
-        X_true = [self.to_cuda_if_possible(X_) for X_ in X_true]
-        Y_true = [self.to_cuda_if_possible(Y_) for Y_ in Y_true]
-
+        # move to device (possibly CUDA)
+        X_true = [X_.to(self.device) for X_ in X_true]
+        Y_true = [Y_.to(self.device) for Y_ in Y_true]
 
         # forward pass
         self.optimizer.zero_grad()
         Y_pred = self.model(*X_true)
-        Y_pred = [self.to_cuda_if_possible(Y_) for Y_ in Y_pred]
+        Y_pred = [Y_.to(self.device) for Y_ in Y_pred]
 
         # compute loss
         loss_list = [self.loss_fn(Y_pred[i], Y_true[i]) for i in range(len(Y_true))]
         return loss_list
+
+
+    def get_dataset_predictions(self):
+        y_true_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
+        y_pred_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
+        with torch.no_grad():
+            self.model.eval()
+            for batch_idx, (X_true, Y_true) in tqdm(enumerate(self.dataloader_test)):
+                # Preprocess
+                X_true, Y_true = self.preprocess_on_the_fly(X_true, Y_true)
+                # Move to device (possibly CUDA)
+                X_true = [X_.to(self.device) for X_ in X_true]
+                Y_true = [Y_.to(self.device) for Y_ in Y_true]
+                # Predict
+                Y_pred = self.model(*X_true)
+                # Update lists
+                Y_pred = [torch_pred.flatten().tolist() for torch_pred in Y_pred]
+                Y_true = [torch_true.flatten().tolist() for torch_true in Y_true]
+                y_true_list = [old + new for old, new in zip(y_true_list, Y_true)]
+                y_pred_list = [old + new for old, new in zip(y_pred_list, Y_pred)]
+        return y_true_list, y_pred_list
+        
 
     def write_to_tensorboard(self, writer, train_loss_list, val_loss_list, epoch):
         for idx, output in enumerate(self.dataloader_train.dataset.y):
@@ -179,6 +209,7 @@ class ModelTrainer:
                     ["val_" + e + "_loss" for e in self.dataloader_test.dataset.y]
         df_performance_stats = pd.DataFrame(data=data, columns=columns)
         return df_performance_stats
+
 
     def get_speed_stats(self, times_epoch, times_forward, times_backward, times_val):
         df_speed_stats = pd.DataFrame({ 
