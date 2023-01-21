@@ -238,12 +238,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # RGB
         img = tick_data['rgb'] # 160,960,3
-        print(img.shape)
+        #print(img.shape)
         img_batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1, 3).transpose(2, 3).float() #1, 3, 160, 960
-        print(img_batch.shape)
+        #print(img_batch.shape)
 
         # TODO DEBUGGING
 
+        """
         if self.debug_counter < 1:
             pil_img = img.astype(np.uint8).reshape(160,960,3)
             transform = transforms.Compose([transforms.ToPILImage()])
@@ -251,6 +252,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             pil_img = transform(pil_img)
             pil_img.show()
             self.debug_counter += 1
+        """
 
         mean = torch.tensor([105.6161, 81.5673, 79.6657])  # RGB
         std = torch.tensor([66.2220, 60.1001, 66.8309])
@@ -261,7 +263,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         ])
 
         img_norm = transform_norm(img_batch)#.to(device)
-        print(img_norm.shape)
+        #print(img_norm.shape)
 
         """
         if self.debug_counter < 2: # TODO FLOAT NOT SUPPORT --> TO PIL
@@ -290,8 +292,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
         img_norm = img_norm.to(device)
-        cmd_one_hot = cmd_one_hot.to(device)
-        spd_norm = spd_norm.to(device)
+        cmd_one_hot = torch.unsqueeze(cmd_one_hot.to(device),0)
+        spd_norm = torch.unsqueeze(torch.unsqueeze(spd_norm.to(device), 0),0)
+
+
+        #print("img_norm",np.shape(img_norm))
+        print("cmd_one_hot",cmd_one_hot)
+        print("spd_norm",spd_norm)
+
 
         with torch.no_grad():
             outputs_ = self.net(img_norm,cmd_one_hot,spd_norm)
@@ -300,9 +308,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         ### INTERIA STEER MODULATION
 
-        if (throttle < 0.1):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
+        if (throttle < 0.15):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
             self.stuck_detector += 1
-        elif (throttle > 0.1 and is_stuck == False):
+        elif (throttle > 0.15 and is_stuck == False):
             self.stuck_detector = 0
             self.forced_move = 0
 
@@ -310,7 +318,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         control = carla.VehicleControl()
         control.steer = float(steer)
         if is_stuck:
-            control.throttle = 0.3
+            control.throttle = 0.6
+            control.steer = 0
             control.brake = 0
         else:
             control.throttle = float(throttle)
