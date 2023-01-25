@@ -52,6 +52,7 @@ class CARLADatasetXYOpt(Dataset):
 
     def load_rgb(self, path):
         img = cv2.imread(path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
             # reshape to #channels; height; width
         img = img.reshape([3] + list(img.shape)[:-1])
         return img
