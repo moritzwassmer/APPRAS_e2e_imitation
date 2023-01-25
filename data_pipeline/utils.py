@@ -44,6 +44,7 @@ def create_metadata_df(root_dir, used_inputs):
         for (root, dirs, files) in os.walk(root_dir, topdown=True):
             # Current folder contains the files
             if not dirs:
+                files = [file for file in files if not file.startswith(".")]
                 input_type = root.split(os.sep)[-1]
                 # New route/szenario
                 if df_temp.columns.__contains__(input_type):
