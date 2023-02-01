@@ -69,11 +69,35 @@ def create_metadata_df(root_dir, used_inputs):
         return df[["dir"] + used_inputs]
 
 
-def train_test_split(df_meta_data, towns=None, train_size_random=0.8, seed=None):
-    if towns:
-        df_train = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns["train"]))]
-        df_test = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns["test"]))]
-    return df_train, df_test
+def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None):
+    
+    if towns_intersect:
+        train_towns = towns_intersect["train"]
+        test_towns  = towns_intersect["test"]
+        # 250 yields in combination with random_state=3 ~ 80% train and ~20% test 
+        num_routes_from_train_towns_for_test = 250
+        df_meta_data_routes = df_meta_data["dir"].drop_duplicates().to_frame()
+        df_meta_data_routes["town"] = df_meta_data_routes["dir"].str.extract("(Town[0-9][0-9])")
+        # Sort by "dir" and index (which is "dir" in that case) alphabetically & reset_index afterwards such that 
+        # on all machines the same routes are sampled for the same seed
+        df_meta_data_routes = df_meta_data_routes.sort_values(by="dir").reset_index(drop=True)
+        df_meta_data_routes["num_frames"] = df_meta_data["dir"].value_counts().sort_index().reset_index(drop=True)
+        df_meta_data_routes_train = df_meta_data_routes[df_meta_data_routes["town"].isin(train_towns)]
+        df_meta_data_routes_test_2 = df_meta_data_routes[df_meta_data_routes["town"].isin(test_towns)]
+        df_meta_data_routes_test_1 = df_meta_data_routes_train.sample(num_routes_from_train_towns_for_test, random_state=3)
+        df_meta_data_routes_train = df_meta_data_routes_train.drop(index=df_meta_data_routes_test_1.index)
+
+        # Also sort entries here for easier comparability
+        df_train = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_train["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
+        df_test_1 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_1["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
+        df_test_2 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_2["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
+        return df_train, df_test_1, df_test_2
+    
+    
+    if towns_no_intersect:
+        df_train = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns_no_intersect["train"]))]
+        df_test = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns_no_intersect["test"]))]
+        return df_train, df_test
 
 
 def measurements_to_df(dataset):

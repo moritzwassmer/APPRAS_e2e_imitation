@@ -114,3 +114,4 @@ ipython_config.py
 **/runs/
 *.pickle
 *.png
+*.json
