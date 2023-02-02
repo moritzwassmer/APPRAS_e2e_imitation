@@ -111,6 +111,7 @@ class CARLADataset(Dataset):
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
+            data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
             # reshape to #channels; height; width
             data = data.reshape([3] + list(data.shape)[:-1])
         elif file_format == ".json":
@@ -118,8 +119,9 @@ class CARLADataset(Dataset):
                 data = json.load(f)
         elif file_format == ".npy":
             data = np.load(path, allow_pickle=True)
-            # discard the weird single number for lidar
-            # data = data[1]
+            # if lidar
+            if data.shape == (2, ):
+                data = data[1]
         elif file_format == ".npz":
             with np.load(path, allow_pickle=True) as f:
                 data = f["arr_0"]

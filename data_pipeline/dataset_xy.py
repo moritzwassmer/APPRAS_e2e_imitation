@@ -27,6 +27,8 @@ class CARLADatasetXY(Dataset):
         self.seq_len = config["seq_len"]
         self.df_meta_data = df_meta_data
         self.data_shapes = self.__get_data_shapes()
+        self.x_sample = None
+        self.y_sample = None
 
     def __len__(self):
         return len(self.df_meta_data)
@@ -79,7 +81,10 @@ class CARLADatasetXY(Dataset):
                     y_sample[meas] = data[meas_idx]
                 else:
                     x_sample[meas] = data[meas_idx]
-        return x_sample, y_sample
+        self.x_sample = x_sample
+        self.y_sample = y_sample
+        # return x_sample, y_sample
+        return self.x_sample, self.y_sample
             
 
     def get_file_path_from_df(self, input_idx, data_point_idx):
@@ -110,6 +115,7 @@ class CARLADatasetXY(Dataset):
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
+            data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
             # reshape to #channels; height; width
             data = data.reshape([3] + list(data.shape)[:-1])
         elif file_format == ".json":

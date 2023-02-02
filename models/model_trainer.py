@@ -6,6 +6,7 @@ import time
 import datetime
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 
 """
@@ -44,6 +45,7 @@ class ModelTrainer:
 
         print(f"Model will be trained on: {self.device}")
 
+
     def run(self):
         """
         Sort the model forward parameters as sorted in the DataLoader for the respective data (x_batch).
@@ -71,7 +73,7 @@ class ModelTrainer:
             for batch_idx, (X_true, y_true) in enumerate(self.dataloader_train):
                 # forward
                 start_forward = time.time()
-                loss_list = self.forward_pass(X_true, y_true, writer, epoch)
+                loss_list = self.forward_pass(X_true, y_true)
                 loss = sum(loss_list) / 3
                 times_forward.append(time.time() - start_forward)
                 
@@ -98,7 +100,7 @@ class ModelTrainer:
                 self.model.eval()
                 
                 for batch_idx, (X_true, y_true) in enumerate(self.dataloader_test):
-                    loss_list = self.forward_pass(X_true, y_true, writer, epoch)
+                    loss_list = self.forward_pass(X_true, y_true)
                     batch_loss_list = [batch_loss + loss_.item() for batch_loss, loss_ in zip(batch_loss_list, loss_list)]
 
                 [val_loss_list[i].append(batch_loss_list[i] / len(self.dataloader_test)) for i in range(len(batch_loss_list))]   
@@ -109,7 +111,7 @@ class ModelTrainer:
             val_loss = np.mean(val_loss_list, axis=0)[-1]
             if val_loss < val_loss_min:
                 val_loss_min = val_loss
-                torch.save(self.model.state_dict(), 'resnet.pt')
+                torch.save(self.model.state_dict(), f"{self.model.__class__.__name__}.pt".lower())
 
             self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
             # Back to training
@@ -121,31 +123,56 @@ class ModelTrainer:
         if self.upload_tensorboard:
             self.upload_tensorboard_to_cloud(times_epoch)
 
-    def to_cuda_if_possible(self, data):
-        return data.to(self.device) if self.device else data
+    def preprocess_on_the_fly(self, X_true, Y_true):
+        """
+        Takes X and Y as dictionaries and returns them as lists (sorted like the dict)
+        """
+        X_true["rgb"] = torch.squeeze(X_true["rgb"])
+        X_true = [self.preprocessing[key](X_true[key]).float() for key in X_true]
+        Y_true = [Y_true[key].float() for key in Y_true]
+        return X_true, Y_true
+
  
-    def forward_pass(self, X_true, Y_true, writer, epoch):
-        # (optional) do preprocessing (squeezing is currently done in the models forward function)
+    def forward_pass(self, X_true, Y_true):
+        # (optional) do preprocessing
         X_true["rgb"] = torch.squeeze(X_true["rgb"])
         X_true = [self.preprocessing[key](X_true[key]).float() for key in X_true]
         Y_true = [Y_true[key].float() for key in Y_true]
         
-        # move to cuda
-        X_true = [self.to_cuda_if_possible(X_) for X_ in X_true]
-        Y_true = [self.to_cuda_if_possible(Y_) for Y_ in Y_true]
-
-        # write model graph
-        # if epoch == 1:
-        #     writer.add_graph(self.model, *X_true) # throws error
+        # move to device (possibly CUDA)
+        X_true = [X_.to(self.device) for X_ in X_true]
+        Y_true = [Y_.to(self.device) for Y_ in Y_true]
 
         # forward pass
         self.optimizer.zero_grad()
         Y_pred = self.model(*X_true)
-        Y_pred = [self.to_cuda_if_possible(Y_) for Y_ in Y_pred]
+        Y_pred = [Y_.to(self.device) for Y_ in Y_pred]
 
         # compute loss
         loss_list = [self.loss_fn(Y_pred[i], Y_true[i]) for i in range(len(Y_true))]
         return loss_list
+
+
+    def get_dataset_predictions(self):
+        y_true_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
+        y_pred_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
+        with torch.no_grad():
+            self.model.eval()
+            for batch_idx, (X_true, Y_true) in tqdm(enumerate(self.dataloader_test)):
+                # Preprocess
+                X_true, Y_true = self.preprocess_on_the_fly(X_true, Y_true)
+                # Move to device (possibly CUDA)
+                X_true = [X_.to(self.device) for X_ in X_true]
+                Y_true = [Y_.to(self.device) for Y_ in Y_true]
+                # Predict
+                Y_pred = self.model(*X_true)
+                # Update lists
+                Y_pred = [torch_pred.flatten().tolist() for torch_pred in Y_pred]
+                Y_true = [torch_true.flatten().tolist() for torch_true in Y_true]
+                y_true_list = [old + new for old, new in zip(y_true_list, Y_true)]
+                y_pred_list = [old + new for old, new in zip(y_pred_list, Y_pred)]
+        return y_true_list, y_pred_list
+        
 
     def write_to_tensorboard(self, writer, train_loss_list, val_loss_list, epoch):
         for idx, output in enumerate(self.dataloader_train.dataset.y):
@@ -156,12 +183,12 @@ class ModelTrainer:
 
 
     def upload_tensorboard_to_cloud(self, times_epoch):
-        dir_newest = sorted(os.listdir("runs"))[0]
+        dir_newest = sorted(os.listdir("runs"))[-1]
         df_stats_train = self.dataloader_train.dataset.get_statistics()
         df_stats_test = self.dataloader_test.dataset.get_statistics()
         description = f""" 
         Trained on towns: {", ".join(sorted(self.dataloader_train.dataset.df_meta_data["dir"].str.extract(r'(Town[0-9][0-9])')[0].unique()))}
-        Trained on size GB: {df_stats_train[df_stats_train.columns[:-2]].sum().sum()}
+        Trained on size GB: {round(df_stats_train[df_stats_train.columns[:-2]].sum().sum(), 2)}
         Trained on % of entire data: {df_stats_train["%_of_entire_data"].item()}
         Validated on towns: {", ".join(sorted(self.dataloader_test.dataset.df_meta_data["dir"].str.extract(r'(Town[0-9][0-9])')[0].unique()))}
         Validated on size GB: {df_stats_test[df_stats_test.columns[:-2]].sum().sum()}
@@ -182,6 +209,7 @@ class ModelTrainer:
                     ["val_" + e + "_loss" for e in self.dataloader_test.dataset.y]
         df_performance_stats = pd.DataFrame(data=data, columns=columns)
         return df_performance_stats
+
 
     def get_speed_stats(self, times_epoch, times_forward, times_backward, times_val):
         df_speed_stats = pd.DataFrame({ 
