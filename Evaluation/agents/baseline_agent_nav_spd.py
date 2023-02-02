@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 from copy import deepcopy
 
 import cv2
@@ -19,7 +20,8 @@ from config import GlobalConfig
 from shapely.geometry import Polygon
 
 import itertools
-import pathlib
+
+from data_pipeline.data_preprocessing import preprocessing
 
 # OUR IMPORTS
 
@@ -52,9 +54,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
         # LOAD MODEL FILE
-        from models.rgb_baseline import MyResnet
-        net = MyResnet()
-        net.load_state_dict(torch.load("C:\\Users\\morit\\OneDrive\\UNI\\Master\\WS22\\APP-RAS\\Programming\\Evaluation\\agents\\models\\rgb_resnet.pth"))
+
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3,  load_weights
+        net = Resnet_Baseline_V3()
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                                           "models", "resnet_baseline", "v3", "weights",
+                                           "no_reg")  # TODO Has to be defined
+        net.load_state_dict(torch.load(net, os.path.join(root, "resnet_E-5.pth"))) # TODO Change to some model checkpoint
+
 
         self.net = net.cuda()
 
@@ -242,8 +249,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         img_batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1, 3).transpose(2, 3).float() #1, 3, 160, 960
         #print(img_batch.shape)
 
-        # TODO DEBUGGING
-
         """
         if self.debug_counter < 1:
             pil_img = img.astype(np.uint8).reshape(160,960,3)
@@ -254,15 +259,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.debug_counter += 1
         """
 
-        mean = torch.tensor([105.6161, 81.5673, 79.6657])  # RGB
-        std = torch.tensor([66.2220, 60.1001, 66.8309])
-
-        transform_norm = transforms.Compose([
-            transforms.Normalize(mean, std),
-            transforms.Resize([224, 224])
-        ])
-
-        img_norm = transform_norm(img_batch)#.to(device)
+        img_norm = preprocessing["rgb"](img_batch).float()
         #print(img_norm.shape)
 
         """
@@ -277,20 +274,15 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
 
-        # TODO: NAVIGATION
-        cmd_labels = torch.tensor(tick_data['next_command']) # TODO
-        cmd_labels = torch.where(cmd_labels == -1, torch.tensor(0), cmd_labels).to(torch.int64)  # Replace by -1 by 0
-        cmd_one_hot = torch.nn.functional.one_hot(cmd_labels, num_classes=7)
-        cmd_one_hot = torch.squeeze(cmd_one_hot).float().to(device)
+        #  NAVIGATION
+        cmd_labels = torch.tensor(tick_data['next_command'])
+        cmd_one_hot = preprocessing["command"](cmd_labels).float()
 
-        # TODO: SPEED
-        speed_mean = 2.382234  ##2.250456762830466
-        speed_std = 1.724884  ##0.30215840254891313
-
+        # SPEED
         spd = torch.tensor(tick_data['speed'])
-        spd_norm = ((spd - speed_mean) / speed_std).float() # TODO
+        spd_norm = preprocessing["speed"](spd).float()
 
-        #### FORWARD PASS,  TODO: (Optionaly, also use a controller depending on the output)
+        #### FORWARD PASS,
         img_norm = img_norm.to(device)
         cmd_one_hot = torch.unsqueeze(cmd_one_hot.to(device),0)
         spd_norm = torch.unsqueeze(torch.unsqueeze(spd_norm.to(device), 0),0)
@@ -303,8 +295,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         with torch.no_grad():
             outputs_ = self.net(img_norm,cmd_one_hot,spd_norm)
-
-        throttle, steer, brake = outputs_
+        brake, steer, throttle = outputs_
+        # throttle, steer,brake = outputs_
 
         ### INTERIA STEER MODULATION
 
@@ -415,7 +407,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return rotation_yaw
 
-    def prepare_image(self, tick_data): # TODO Usefull?
+    def prepare_image(self, tick_data):
         image = Image.fromarray(tick_data['rgb'])
         image_degrees = []
         for degree in self.aug_degrees:
@@ -489,17 +481,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             
         image = np.asarray(image)
         cropped_image = image[start_y:start_y+crop_y, start_x:start_x+crop_x]
-
-        # TODO CHECK OUTPUT OF THIS FUNCTION
-        #img_pil = Image.fromarray(cropped_image,"RGB")
-        #np.save(cropped_image, "D:\\a\\a.png")
-        #img_pil.save("D:\\a\\a.png")
-
-        # Convert the tensor to a PIL image
-        #img_pil = transforms.ToPILImage()(image)
-
-        # Display the image
-        #img_pil.save("D:\\a\\a.png")
 
         return cropped_image
 
