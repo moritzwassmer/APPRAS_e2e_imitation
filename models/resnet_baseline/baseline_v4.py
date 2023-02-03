@@ -1,5 +1,7 @@
+#%%
 import torch
 import torch.nn as nn
+#%%
 import torchvision
 
 """
@@ -10,7 +12,7 @@ Fusion: late fusion (concatenating).
 Comment: one dense layers after concatenation. 
 """
 
-class Baseline_V3(nn.Module):
+class Baseline_V4(nn.Module):
     
     def __init__(self):
         super().__init__()
@@ -52,36 +54,50 @@ class Baseline_V3(nn.Module):
             #nn.Dropout(p=0.2, inplace=False)
         )
 
-        # REPLACE WITH
-        # GATED RECURRENT UNITS
-        # OUTPUT WAYPOINTS
-        # FEED INTO PID CONTROLER
-        # OUTPUT HARD CONTROLS (THROTTLE, BRAKE, STEER)
-        
-        # Regression Heads for Throttle, Brake and Steering
-        self.thr_head = nn.Sequential(
-            nn.Linear(10, 1),
-            nn.Sigmoid() # [0,1] Range Output
+        self.gru1 =  nn.GRUCell(
+            input_size = 10 + 3 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            hidden_size = 10
         )
-        
-        self.brk_head = nn.Sequential(
-            nn.Linear(10, 1),
-            nn.Sigmoid() # [0,1] Range Output
+        self.gru1_dropout = nn.Linear(10, 3)
+
+        self.gru3 =  nn.GRUCell(
+            input_size = 10 + 3 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            hidden_size = 10
         )
-        
-        self.str_head = nn.Sequential(
-            nn.Linear(10, 1),
-            nn.Tanh() # [-1,1] Range Output
+        self.gru3_dropout = nn.Linear(10, 3)
+
+        self.gru3 =  nn.GRUCell(
+            input_size = 10 + 3 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            hidden_size = 10
         )
+        self.gru3_dropout = nn.Linear(10, 3)
+
+        self.gru4 =  nn.GRUCell(
+            input_size = 10 + 3 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            hidden_size = 10
+        )
+        self.gru4_dropout = nn.Linear(10, 3)
+
+        self.pos = torch.Tensor((0,0,0))
 
     # Forward Pass of the Model
-    def forward(self, rgb, cmd, spd):
+    def forward(self, rgb, cmd, spd, goal):
+        goal = torch.tensor(goal)
         rgb = self.net(rgb) # BRG
         cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
         
         x = torch.cat((rgb, cmd, spd),1)
         x = self.mlp(x)
+
+        x = self.gru1(torch.cat((x, self.pos, goal)))
+        wp1 = self.gru1_dropout(x)
+        x = self.gru1(torch.cat(x, wp1, goal))
+        wp2 = self.gru1_dropout(x)
+        x = self.gru1(torch.cat(x, wp2, goal))
+        wp3 = self.gru1_dropout(x)
+        x = self.gru1(torch.cat(x, wp3, goal))
+        wp4 = self.gru1_dropout(x)
         
         #x = self.net.fc(x)
-        return self.brk_head(x), self.str_head(x), self.thr_head(x) # Sorting!
+        return wp1, wp2, wp3, wp4
