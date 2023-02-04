@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from sklearn.utils.class_weight import compute_sample_weight
 import os
 import json 
 from tqdm import tqdm
@@ -137,3 +139,28 @@ def render_example_video_from_folder_name(df_meta_data, folder="int_u_dataset_23
 
     out.release()
     cv2.destroyAllWindows()
+
+
+def get_sample_weights_of_dataset(dataset, num_bins=5):
+    """
+    """
+    num_bins_usually = num_bins
+    df_measurements = measurements_to_df(dataset)
+    y_variables = dataset.y
+    if "brake" in y_variables:
+        df_measurements["brake"] = df_measurements["brake"].replace({True: 1, False: 0})
+    # measurements_dict = df_measurements[y_variables].to_dict(orient="list")
+    sample_weights = dict()
+    for y_var in y_variables:
+        num_bins = num_bins_usually
+        if y_var == "brake":
+            num_bins = 2
+        # Create bins in which to classify
+        _, bin_edges = np.histogram(df_measurements[y_var], bins=num_bins)
+        # Adjust last bin edge such that all data samples are classified
+        bin_edges[-1] += 0.1
+        # Classify in the defined bins (bin index)
+        bin_mapping = np.digitize(df_measurements[y_var], bins=bin_edges,)
+        sample_weights_y = compute_sample_weight(y=bin_mapping, class_weight="balanced")
+        sample_weights[y_var] = sample_weights_y
+    return sample_weights
