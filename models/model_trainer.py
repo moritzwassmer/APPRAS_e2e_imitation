@@ -42,7 +42,7 @@ class ModelTrainer:
         self.upload_tensorboard = upload_tensorboard
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
         self.model.to(self.device)
-        # Put sample weights and loss function weigths to device 
+        # Put sample weights and loss function weights to device 
         self.loss_fns = [self.loss_fns[key] for key in self.loss_fns]
         if self.sample_weights:
             self.sample_weights = [torch.tensor(self.sample_weights[key], device=self.device, dtype=torch.float32) for key in self.sample_weights]
