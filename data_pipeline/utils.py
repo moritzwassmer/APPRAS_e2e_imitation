@@ -71,7 +71,7 @@ def create_metadata_df(root_dir, used_inputs):
         return df[["dir"] + used_inputs]
 
 
-def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None):
+def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None, df_meta_data_noisy=None):
     
     if towns_intersect:
         train_towns = towns_intersect["train"]
@@ -91,14 +91,19 @@ def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None
 
         # Also sort entries here for easier comparability
         df_train = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_train["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
+        if type(df_meta_data_noisy) != None:
+            df_train = pd.concat([df_train, df_meta_data_noisy])
         df_test_1 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_1["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
         df_test_2 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_2["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
         return df_train, df_test_1, df_test_2
     
     
-    if towns_no_intersect:
+    if type(towns_no_intersect) != None:
         df_train = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns_no_intersect["train"]))]
+        if df_meta_data_noisy:
+            df_train = pd.concat([df_train, df_meta_data_noisy])
         df_test = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns_no_intersect["test"]))]
+
         return df_train, df_test
 
 
