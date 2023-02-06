@@ -38,6 +38,7 @@ def create_metadata_df_xy(root_dir, x, y):
         df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
         return df[["dir"] + used_inputs]
 
+    
 def create_metadata_df(root_dir, used_inputs):
         """
         Creates the metadata (i.e. filenames) based on the the data root directory.
@@ -106,10 +107,30 @@ def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None
 
         return df_train, df_test
 
-
+"""
 def measurements_to_df(dataset):
     idxs, paths, speed, steer, throttle, brake, command = [], [], [], [], [], [], []
     df_meta_data = dataset.df_meta_data
+    for idx in tqdm(df_meta_data.index.values):
+        path = os.path.join(df_meta_data["dir"][idx], "measurements", df_meta_data["measurements"][idx])
+        with open(path, 'r') as f:
+            measurements_dict = json.load(f)
+        idxs.append(idx)
+        paths.append(path)
+        speed.append(measurements_dict["speed"])
+        command.append(measurements_dict["command"])
+        steer.append(measurements_dict["steer"])
+        throttle.append(measurements_dict["throttle"])
+        brake.append(measurements_dict["brake"])
+
+    df_measurements = pd.DataFrame({"dir": paths, "speed": speed, "command": command, "steer": steer, "throttle": throttle, "brake": brake}, index=list(range(len(speed))))
+    # df_measurements.to_pickle("measurements_.pickle")
+    return df_measurements
+    """
+
+def measurements_to_df(df_meta_data):
+    idxs, paths, speed, steer, throttle, brake, command = [], [], [], [], [], [], []
+    # df_meta_data = dataset.df_meta_data
     for idx in tqdm(df_meta_data.index.values):
         path = os.path.join(df_meta_data["dir"][idx], "measurements", df_meta_data["measurements"][idx])
         with open(path, 'r') as f:
