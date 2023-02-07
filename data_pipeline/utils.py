@@ -7,37 +7,6 @@ from tqdm import tqdm
 import cv2
 
 
-def create_metadata_df_xy(root_dir, x, y):
-        """
-        Creates the metadata (i.e. filenames) based on the the data root directory.
-        This root directory is supposed to contain folders for individual routes and those folder
-        contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
-        This function assumes that for all routes the same measurements/sensors types were recorded!
-        """
-        df_temp_list = []
-        df_temp = pd.DataFrame()
-        for (root, dirs, files) in os.walk(root_dir, topdown=True):
-            # Current folder contains the files
-            if not dirs:
-                input_type = root.split(os.sep)[-1]
-                # New route/szenario
-                if df_temp.columns.__contains__(input_type):
-                    df_temp_list.append(df_temp)
-                    df_temp = pd.DataFrame()
-                    df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    df_temp[input_type] = sorted(files)
-                # Append input type to existing route/szenario
-                else:
-                    if df_temp.empty:
-                        df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    if len(files) == len(df_temp):
-                        df_temp[input_type] = sorted(files)
-                    else:
-                        print(f"Varying number files among input types: {root}")
-        df_temp_list.append(df_temp)
-        df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
-        return df[["dir"] + used_inputs]
-
 def create_metadata_df(root_dir, used_inputs):
         """
         Creates the metadata (i.e. filenames) based on the the data root directory.
@@ -91,25 +60,27 @@ def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None
 
         # Also sort entries here for easier comparability
         df_train = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_train["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
-        if type(df_meta_data_noisy) != None:
-            df_train = pd.concat([df_train, df_meta_data_noisy])
+        if type(df_meta_data_noisy) != type(None):
+            df_meta_data_noisy = df_meta_data_noisy.sort_values(["dir", "measurements"]).reset_index(drop=True)
+            df_train = pd.concat([df_train, df_meta_data_noisy], ignore_index=True)
         df_test_1 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_1["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
         df_test_2 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_2["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
         return df_train, df_test_1, df_test_2
     
     
-    if type(towns_no_intersect) != None:
+    if type(towns_no_intersect) != type(None):
         df_train = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns_no_intersect["train"]))]
         if df_meta_data_noisy:
             df_train = pd.concat([df_train, df_meta_data_noisy])
         df_test = df_meta_data[df_meta_data["dir"].str.contains("|".join(towns_no_intersect["test"]))]
-
+        # Make test set the 15% of the size of the train set
+        df_test = df_test.sample(n=int(df_train.shape[0] * 0.15), random_state=3)
         return df_train, df_test
 
 
-def measurements_to_df(dataset):
+def measurements_to_df(df_meta_data):
     idxs, paths, speed, steer, throttle, brake, command = [], [], [], [], [], [], []
-    df_meta_data = dataset.df_meta_data
+    # df_meta_data = dataset.df_meta_data
     for idx in tqdm(df_meta_data.index.values):
         path = os.path.join(df_meta_data["dir"][idx], "measurements", df_meta_data["measurements"][idx])
         with open(path, 'r') as f:
@@ -146,11 +117,11 @@ def render_example_video_from_folder_name(df_meta_data, folder="int_u_dataset_23
     cv2.destroyAllWindows()
 
 
-def get_sample_weights_of_dataset(dataset, num_bins=5):
+def get_sample_weights_of_dataset(dataset, num_bins=5, multilabel_option=False):
     """
     """
     num_bins_usually = num_bins
-    df_measurements = measurements_to_df(dataset)
+    df_measurements = measurements_to_df(dataset.df_meta_data)
     y_variables = dataset.y
     if "brake" in y_variables:
         df_measurements["brake"] = df_measurements["brake"].replace({True: 1, False: 0})
@@ -168,4 +139,8 @@ def get_sample_weights_of_dataset(dataset, num_bins=5):
         bin_mapping = np.digitize(df_measurements[y_var], bins=bin_edges,)
         sample_weights_y = compute_sample_weight(y=bin_mapping, class_weight="balanced")
         sample_weights[y_var] = sample_weights_y
+
+    if multilabel_option:
+        sample_weights = np.prod(np.vstack(sample_weights.values()).T, axis=1)
+        sample_weights = {"multilabel": sample_weights}
     return sample_weights
