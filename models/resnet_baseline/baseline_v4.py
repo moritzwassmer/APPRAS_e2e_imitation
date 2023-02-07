@@ -76,34 +76,31 @@ class Baseline_V4(nn.Module):
             nn.Linear(30, 10),
             nn.Tanh(), #nn.LeakyReLU()
             #nn.Dropout(p=0.2, inplace=False)
-            nn.Linear(10, 3),
-            nn.Tanh(), #nn.LeakyReLU()
-            #nn.Dropout(p=0.2, inplace=False)
         )
 
         self.gru1 =  nn.GRUCell(
-            input_size = 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru1_dropout = nn.Linear(10, 3)
+        self.gru1_dropout = nn.Linear(10, 2)
 
         self.gru2 =  nn.GRUCell(
-            input_size = 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru2_dropout = nn.Linear(10, 3)
+        self.gru2_dropout = nn.Linear(10, 2)
 
         self.gru3 =  nn.GRUCell(
-            input_size = 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru3_dropout = nn.Linear(10, 3)
+        self.gru3_dropout = nn.Linear(10, 2)
 
         self.gru4 =  nn.GRUCell(
-            input_size = 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru4_dropout = nn.Linear(10, 3)
+        self.gru4_dropout = nn.Linear(10, 2)
 
         self.control_turn = PIDController(1.25, .75, .3, 20)
         self.control_speed = PIDController(5., .5, 1., 20)
@@ -116,7 +113,7 @@ class Baseline_V4(nn.Module):
         desired_speed = np.linalg.norm(waypoints[0] - waypoints[1]) * 2.0
 
         # BRAKE IF DESIRED SPEED IS SMALL or ACTUAL SPEED IS 10% LARGER THAN DESIRED SPEED
-        brake = ((desired_speed < brake.speed) or ((speed / desired_speed) > self.brake_ratio))
+        brake = ((desired_speed < self.brake_speed) or ((speed / desired_speed) > self.brake_ratio))
         
         # CLIP MAXIMUM CHANGE IN SPEED
         delta = np.clip(desired_speed - speed, 0.0, self.clip_throttle)
@@ -140,20 +137,22 @@ class Baseline_V4(nn.Module):
         cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
         
+        x_0 = torch.zeros(size=(rgb.shape[0], 2), dtype=rgb.dtype).to(rgb.device)
+        
         x = torch.cat((rgb, cmd, spd),1)
         x = self.mlp(x)
 
-        x = self.gru1(x)
+        x = self.gru1(torch.cat((x, x_0),1))
         wp1 = self.gru1_dropout(x)
-        x = self.gru2(torch.add(x, wp1.reshape(-1,1)), -1)
+        x = self.gru2(torch.cat((x, wp1),1))
         wp2 = self.gru2_dropout(x)
-        x = self.gru3(torch.add((x, wp2.reshape(-1,1))), -1)
+        x = self.gru3(torch.cat((x, wp2),1))
         wp3 = self.gru3_dropout(x)
-        x = self.gru4(torch.add((x, wp3.reshape(-1,1))), -1)
+        x = self.gru4(torch.cat((x, wp3),1))
         wp4 = self.gru4_dropout(x)
 
-        wps = np.array([wp1,wp2,wp3,wp4])
+        wps = np.array([wp.detach().numpy() for wp in [wp1,wp2,wp3,wp4]])
         
         #x = self.net.fc(x)
-        return self.controller(wps, spd)
+        return self.controller(wps, spd.detach().numpy())
 # %%

@@ -44,7 +44,6 @@ model.to(device)
 # Loss and Optimizer
 criterion = nn.L1Loss() # Easy to interpret #nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-# %%
 
 n_epochs = 10
 print_every = 200
@@ -64,6 +63,5 @@ model_trainer = ModelTrainer(
     preprocessing=preprocessing,
     upload_tensorboard=True
     )
-# %%
 model_trainer.run()
 # %%
