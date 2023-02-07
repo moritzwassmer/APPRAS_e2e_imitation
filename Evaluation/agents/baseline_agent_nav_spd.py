@@ -56,22 +56,31 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
         # LOAD MODEL FILE
-
-        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3,  load_weights
-        net = Resnet_Baseline_V3()
         """
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3
+        
+        net = Resnet_Baseline_V3()
+
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                                            "models", "resnet_baseline", "weights",
                                            "Resnet_Baseline_V3")  # TODO Has to be defined
         net.load_state_dict(torch.load(os.path.join(root, "resnet_E-5.pth"))) # TODO Change to some model checkpoint
-        """
+
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                                            "models", "resnet_baseline", "weights",
                                            "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
         path = os.path.join(root,"resnet_E-5_noise.pth")
 
         net.load_state_dict(torch.load(path)) # TODO Change to some model checkpoint
+        """
 
+        from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4
+        net = Resnet_Baseline_V4()
+
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                            "models", "resnet_baseline", "weights",
+                            "Resnet_Baseline_V4_branched")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_noise_branched.pth")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
