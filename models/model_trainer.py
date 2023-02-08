@@ -28,21 +28,29 @@ TODO:
 
 class ModelTrainer:
 
-    def __init__(self, model, optimizer, loss_fn, n_epochs, dataloader_train, dataloader_test, preprocessing, upload_tensorboard):
+    def __init__(self, model, optimizer, loss_fns, loss_fn_weights, n_epochs, dataloader_train, dataloader_test, sample_weights, preprocessing, upload_tensorboard):
         self.model = model
         self.optimizer = optimizer
-        self.loss_fn = loss_fn
+        self.loss_fns = loss_fns
         self.n_epochs = n_epochs
         self.dataloader_train = dataloader_train
         self.dataloader_test = dataloader_test
         self.preprocessing = preprocessing
+        # Sample weights dict contains weights alphabetically to y variables
+        self.sample_weights = sample_weights
+        self.loss_fn_weights = loss_fn_weights
         self.upload_tensorboard = upload_tensorboard
-
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
         self.model.to(self.device)
+        # Put sample weights and loss function weights to device 
+        self.loss_fns = [self.loss_fns[key] for key in self.loss_fns]
+        if self.sample_weights:
+            self.sample_weights = [torch.tensor(self.sample_weights[key], device=self.device, dtype=torch.float32) for key in self.sample_weights]
+        self.loss_fn_weights = [torch.tensor(self.loss_fn_weights[key], device=self.device, dtype=torch.float32) for key in self.loss_fn_weights]
+
+        self.do_weight_samples = True if sample_weights else False
         self.df_performance_stats = None
         self.df_speed_stats = None
-
         print(f"Model will be trained on: {self.device}")
 
 
@@ -70,14 +78,22 @@ class ModelTrainer:
             print(f'Epoch {epoch}\n')
             
             # Work through batches
-            for batch_idx, (X_true, y_true) in enumerate(self.dataloader_train):
-                # forward
+            for batch_idx, (X, Y_true, IDX) in enumerate(self.dataloader_train):
                 start_forward = time.time()
-                loss_list = self.forward_pass(X_true, y_true)
-                loss = sum(loss_list) / 3
+                # In this step dicts are transformed to lists with same order
+                X, Y_true = self.preprocess_on_the_fly(X, Y_true)
+                # Move X, Y_true to device
+                X = [X_.to(self.device) for X_ in X]
+                Y_true = [Y_.to(self.device) for Y_ in Y_true]
+                # Y_pred will be on the device where also model and X are
+                Y_pred = self.model(*X)
+                loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=self.do_weight_samples)
+                loss = sum(loss_list) / sum(self.loss_fn_weights)
+                # Set gradients to None to not accumulate them over iteration (more efficient than optimizer.zero_grad())
+                for param in self.model.parameters():
+                    param.grad = None
                 times_forward.append(time.time() - start_forward)
-                
-                # backpropagation
+                # Backpropagation & Step
                 start_backward = time.time()
                 loss.backward()
                 self.optimizer.step()
@@ -99,8 +115,19 @@ class ModelTrainer:
             with torch.no_grad():
                 self.model.eval()
                 
-                for batch_idx, (X_true, y_true) in enumerate(self.dataloader_test):
-                    loss_list = self.forward_pass(X_true, y_true)
+                for batch_idx, (X, Y_true, IDX) in enumerate(self.dataloader_test):
+                    # In this step dicts are transformed to lists with same order
+                    X, Y_true = self.preprocess_on_the_fly(X, Y_true)
+                    # Move X, Y_true to device
+                    X = [X_.to(self.device) for X_ in X]
+                    Y_true = [Y_.to(self.device) for Y_ in Y_true]
+                    # Y_pred will be on the device where also model and X are
+                    Y_pred = self.model(*X)
+                    loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=False)
+                    loss = sum(loss_list) / sum(self.loss_fn_weights)
+                    # TODO: Is it really needed if model.eval() anyways?
+                    for param in self.model.parameters():
+                        param.grad = None
                     batch_loss_list = [batch_loss + loss_.item() for batch_loss, loss_ in zip(batch_loss_list, loss_list)]
 
                 [val_loss_list[i].append(batch_loss_list[i] / len(self.dataloader_test)) for i in range(len(batch_loss_list))]   
@@ -117,39 +144,34 @@ class ModelTrainer:
             # Back to training
             self.model.train()
             times_epoch.append(time.time() - start_epoch)
+            print("Epoch took: ", str(datetime.timedelta(seconds=int(times_epoch[-1]))))
         writer.close()
         self.df_performance_stats = self.get_performance_stats(train_loss_list, val_loss_list)
         self.df_speed_stats = self.get_speed_stats(times_epoch, times_forward, times_backward, times_val)
         if self.upload_tensorboard:
             self.upload_tensorboard_to_cloud(times_epoch)
 
-    def preprocess_on_the_fly(self, X_true, Y_true):
+    def preprocess_on_the_fly(self, X, Y_true):
         """
         Takes X and Y as dictionaries and returns them as lists (sorted like the dict)
         """
-        X_true["rgb"] = torch.squeeze(X_true["rgb"])
-        X_true = [self.preprocessing[key](X_true[key]).float() for key in X_true]
+        # Attention: this is the point where the dicts are transferred to lists, 
+        # where the elements of the lists are sorted in the previous key orders.
+        X["rgb"] = torch.squeeze(X["rgb"])
+        X = [self.preprocessing[key](X[key]).float() for key in X]
         Y_true = [Y_true[key].float() for key in Y_true]
-        return X_true, Y_true
+        return X, Y_true
 
- 
-    def forward_pass(self, X_true, Y_true):
-        # (optional) do preprocessing
-        X_true["rgb"] = torch.squeeze(X_true["rgb"])
-        X_true = [self.preprocessing[key](X_true[key]).float() for key in X_true]
-        Y_true = [Y_true[key].float() for key in Y_true]
-        
-        # move to device (possibly CUDA)
-        X_true = [X_.to(self.device) for X_ in X_true]
-        Y_true = [Y_.to(self.device) for Y_ in Y_true]
 
-        # forward pass
-        self.optimizer.zero_grad()
-        Y_pred = self.model(*X_true)
-        Y_pred = [Y_.to(self.device) for Y_ in Y_pred]
-
-        # compute loss
-        loss_list = [self.loss_fn(Y_pred[i], Y_true[i]) for i in range(len(Y_true))]
+    def compute_loss(self, Y_true, Y_pred, IDX, do_weight_samples=True):
+        if do_weight_samples:
+            # Weight the individual loss terms by their sample weights
+            loss_list = [(self.sample_weights[i][IDX] * self.loss_fns[i](Y_pred[i], Y_true[i])).sum() / self.sample_weights[i][IDX].sum() for i in range(len(Y_true))]
+        else:
+            # Equally weight, i.e. reduce mean
+            loss_list = [self.loss_fns[i](Y_pred[i], Y_true[i]).mean() for i in range(len(Y_true))]
+        # Weight each individual loss term by it's loss weight
+        loss_list = [self.loss_fn_weights[i] * loss_list[i] for i in range(len(loss_list))]
         return loss_list
 
 
@@ -183,7 +205,10 @@ class ModelTrainer:
 
 
     def upload_tensorboard_to_cloud(self, times_epoch):
-        dir_newest = sorted(os.listdir("runs"))[-1]
+        dirs = os.listdir("runs")
+        dirs_creation_time = [os.path.getctime(os.path.join("runs", dir)) for dir in dirs]
+        dirs_creation_time_sorted = [el[0] for el in sorted(zip(dirs, dirs_creation_time), key=lambda x: x[1])]
+        dir_newest = dirs_creation_time_sorted[-1]
         df_stats_train = self.dataloader_train.dataset.get_statistics()
         df_stats_test = self.dataloader_test.dataset.get_statistics()
         description = f""" 
