@@ -151,8 +151,5 @@ class Baseline_V4(nn.Module):
         x = self.gru4(torch.cat((x, wp3),1))
         wp4 = self.gru4_dropout(x)
 
-        wps = np.array([wp.detach().numpy() for wp in [wp1,wp2,wp3,wp4]])
-        
-        #x = self.net.fc(x)
-        return self.controller(wps, spd.detach().numpy())
+        return wp1,wp2,wp3,wp4
 # %%
