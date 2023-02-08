@@ -51,7 +51,7 @@ class CARLADatasetXYOpt(Dataset):
         # y_sample = {"brake": brake, "steer": steer, "throttle": throttle}
         y_sample = {"waypoints": np.array(waypoints)}
 
-        return x_sample, y_sample
+        return x_sample, y_sample, idx
 
     def load_rgb(self, path):
         img = cv2.imread(path)

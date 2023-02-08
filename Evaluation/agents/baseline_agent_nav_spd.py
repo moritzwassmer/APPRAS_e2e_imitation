@@ -23,6 +23,8 @@ import itertools
 
 from data_pipeline.data_preprocessing import preprocessing
 
+from agents.navigation.local_planner_behavior import RoadOption
+
 # OUR IMPORTS
 
 from torchvision import transforms
@@ -57,10 +59,18 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3,  load_weights
         net = Resnet_Baseline_V3()
+        """
         root = os.path.join(os.getenv("GITLAB_ROOT"),
-                                           "models", "resnet_baseline", "v3", "weights",
-                                           "no_reg")  # TODO Has to be defined
-        net.load_state_dict(torch.load(net, os.path.join(root, "resnet_E-5.pth"))) # TODO Change to some model checkpoint
+                                           "models", "resnet_baseline", "weights",
+                                           "Resnet_Baseline_V3")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-5.pth"))) # TODO Change to some model checkpoint
+        """
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                                           "models", "resnet_baseline", "weights",
+                                           "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
+        path = os.path.join(root,"resnet_E-5_noise.pth")
+
+        net.load_state_dict(torch.load(path)) # TODO Change to some model checkpoint
 
 
         self.net = net.cuda()
@@ -156,6 +166,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         # NAVIGATION
         gps = input_data['gps'][1][:2]
         speed = input_data['speed'][1]['speed']
+
+        print("speed"+str(speed))
+
         compass = input_data['imu'][1][-1]
         if (np.isnan(compass) == True): # CARLA 0.9.10 occasionally sends NaN values in the compass
             compass = 0.0
@@ -174,7 +187,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         denoised_pos = np.average(self.gps_buffer, axis=0)
 
         waypoint_route = self._route_planner.run_step(denoised_pos)
-        next_wp, next_cmd = waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0]
+        next_wp, next_cmd = waypoint_route[0] # waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0] # TODO Might be wrong
+
+        #roadOption = RoadOption(next_cmd.value)
+        print(str(next_cmd))
 
         #print(next_wp)
         #print(next_cmd)
@@ -233,11 +249,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.forced_move = 0
             self.stuck_detector = 0
 
+        """
         print(self.step)
         print(self.stuck_detector)
         print(self.forced_move)
         print(is_stuck)
-        print("\n")
+        """
 
         ### PREPROCESSING
 
@@ -289,8 +306,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
         #print("img_norm",np.shape(img_norm))
-        print("cmd_one_hot",cmd_one_hot)
-        print("spd_norm",spd_norm)
+        #print("cmd_one_hot",cmd_one_hot)
+        #print("spd_norm",spd_norm)
 
 
         with torch.no_grad():
@@ -300,23 +317,28 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         ### INTERIA STEER MODULATION
 
-        if (throttle < 0.15):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
+        if (tick_data['speed'] < 0.01):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
             self.stuck_detector += 1
-        elif (throttle > 0.15 and is_stuck == False):
+        elif (tick_data['speed'] > 0.01 and is_stuck == False):
             self.stuck_detector = 0
             self.forced_move = 0
 
         ### CERATE CARLA CONTROLS
         control = carla.VehicleControl()
-        control.steer = float(steer)
+
         if is_stuck:
-            control.throttle = 0.6
+            control.throttle = 0.5
             control.steer = 0
             control.brake = 0
         else:
             control.throttle = float(throttle)
-            control.brake = float(brake)
-        print(control)
+            if brake > 0:
+                control.brake = float(brake)
+            else:
+                control.brake = 0#float(brake)
+            control.steer = float(steer)
+        print("control ",control)
+        print("\n")
         self.control = control
 
         self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
