@@ -96,3 +96,5 @@ preprocessing = {
     "command": prep_command,
     "lidar": transform_lidar_bev
 }
+
+# %%

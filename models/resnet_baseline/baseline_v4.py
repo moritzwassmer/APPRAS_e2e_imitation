@@ -79,34 +79,34 @@ class Baseline_V4(nn.Module):
         )
 
         self.gru1 =  nn.GRUCell(
-            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru1_dropout = nn.Linear(10, 2)
+        self.gru1_dropout = nn.Linear(10, 3)
 
         self.gru2 =  nn.GRUCell(
-            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru2_dropout = nn.Linear(10, 2)
+        self.gru2_dropout = nn.Linear(10, 3)
 
         self.gru3 =  nn.GRUCell(
-            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru3_dropout = nn.Linear(10, 2)
+        self.gru3_dropout = nn.Linear(10, 3)
 
         self.gru4 =  nn.GRUCell(
-            input_size = 10 + 2, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru4_dropout = nn.Linear(10, 2)
+        self.gru4_dropout = nn.Linear(10, 3)
 
-        self.control_turn = PIDController(1.25, .75, .3, 20)
-        self.control_speed = PIDController(5., .5, 1., 20)
-        self.clip_throttle = .25
-        self.brake_ratio = 1.1
-        self.brake_speed = .4
+        # self.control_turn = PIDController(1.25, .75, .3, 20)
+        # self.control_speed = PIDController(5., .5, 1., 20)
+        # self.clip_throttle = .25
+        # self.brake_ratio = 1.1
+        # self.brake_speed = .4
     
     def controller(self, waypoints, speed):
         
@@ -137,7 +137,7 @@ class Baseline_V4(nn.Module):
         cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
         
-        x_0 = torch.zeros(size=(rgb.shape[0], 2), dtype=rgb.dtype).to(rgb.device)
+        x_0 = torch.zeros(size=(rgb.shape[0], 3), dtype=rgb.dtype).to(rgb.device)
         
         x = torch.cat((rgb, cmd, spd),1)
         x = self.mlp(x)
@@ -151,5 +151,7 @@ class Baseline_V4(nn.Module):
         x = self.gru4(torch.cat((x, wp3),1))
         wp4 = self.gru4_dropout(x)
 
-        return wp1,wp2,wp3,wp4
+        out = torch.stack([wp1,wp2,wp3,wp4],1)
+
+        return out
 # %%

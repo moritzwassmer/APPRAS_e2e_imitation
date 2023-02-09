@@ -30,7 +30,7 @@ config_xy = {"used_inputs": ["rgb", "measurements"],
 df_meta_data = create_metadata_df(path_data, config_xy["used_inputs"])
 
 
-batch_size = 2
+batch_size = 32
 # train_dataset = CARLADatasetXY(root_dir=path_data, df_meta_data=df_meta_data, config=config_xy)
 # weighted_sampler = WeightedSampler(dataset=train_dataset)
 train_dataset = CARLADatasetXYOpt(df_meta_data)

@@ -1,3 +1,4 @@
+#%%
 from torch.utils.data import Dataset
 import datetime
 from torchvision import transforms
@@ -38,14 +39,16 @@ class CARLADatasetXYOpt(Dataset):
 
     def __getitem__(self, idx):
 
-        rgb_np = self.load_rgb(self.rgb_paths[idx])
+        rgb_np = self.load_rgb(self.rgb_paths[idx]).astype(float)
         measurements = self.load_measurements(self.measurements_paths[idx])
         speed = measurements["speed"]
+        speed = np.array([speed])
         command = measurements["command"]
         steer = measurements["steer"]
         throttle = measurements["throttle"]
         brake = measurements["brake"]
         waypoints = measurements["waypoints"]
+        waypoints = waypoints[:4]
 
         x_sample = {"rgb": rgb_np, "command": command, "speed": speed}
         # y_sample = {"brake": brake, "steer": steer, "throttle": throttle}
@@ -65,3 +68,4 @@ class CARLADatasetXYOpt(Dataset):
             measurements = json.load(f)
         return measurements
             
+# %%
