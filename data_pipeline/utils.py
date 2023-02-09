@@ -171,7 +171,7 @@ def get_sample_weights_of_dataset(dataset, num_bins=5):
     """
     """
     num_bins_usually = num_bins
-    df_measurements = measurements_to_df(dataset)
+    df_measurements = measurements_to_df(dataset.df_meta_data)
     y_variables = dataset.y
     if "brake" in y_variables:
         df_measurements["brake"] = df_measurements["brake"].replace({True: 1, False: 0})
