@@ -29,7 +29,8 @@ class CARLADatasetXYOpt(Dataset):
         self.rgb_paths = df_paths_rgb.to_numpy()
         self.measurements_paths = df_paths_measurements.to_numpy()
         #  hotfix for model trainer
-        self.y = np.array(["brake", "steer", "throttle"])
+        # self.y = np.array(["brake", "steer", "throttle"])
+        self.y = np.array(["waypoints"])
 
     def __len__(self):
         return len(self.rgb_paths)
@@ -44,11 +45,13 @@ class CARLADatasetXYOpt(Dataset):
         steer = measurements["steer"]
         throttle = measurements["throttle"]
         brake = measurements["brake"]
+        waypoints = measurements["waypoints"]
 
         x_sample = {"rgb": rgb_np, "command": command, "speed": speed}
-        y_sample = {"brake": brake, "steer": steer, "throttle": throttle}
+        # y_sample = {"brake": brake, "steer": steer, "throttle": throttle}
+        y_sample = {"waypoints": np.array(waypoints)}
 
-        return x_sample, y_sample
+        return x_sample, y_sample, idx
 
     def load_rgb(self, path):
         img = cv2.imread(path)
