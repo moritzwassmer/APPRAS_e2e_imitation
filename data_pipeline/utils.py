@@ -39,6 +39,41 @@ def create_metadata_df(root_dir, used_inputs):
         df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
         return df[["dir"] + used_inputs]
 
+def adjust_df_meta_for_unique_command_batches(df_meta_data, batch_size):
+    """
+    Use this function if an model architecture is used where the prediction
+    head depend on the specific command type.
+    Returns the given df_meta_data in an adjusted version for the use in combination
+    with DataLoader where shuffle=False.
+    """
+    # Add command as column to df_meta_data
+    df_meta_data = df_meta_data.copy()
+    print("Read all measurements from disk.")
+    df_measurements = measurements_to_df(df_meta_data)
+    print("All measurements in RAM! Now rebuild batches!")
+    df_meta_data["command"] = df_measurements["command"]
+    # Discard samples such that num_sample_per_command modulo batch_size = 0
+    nums_to_discard = (df_meta_data.sort_values("command").value_counts("command") % batch_size).sort_index().values
+    commands = np.sort(df_meta_data["command"].unique())
+    for cmd_idx, cmd in enumerate(commands):
+        idxs_discard = (df_meta_data
+                        .query("command == @cmd")
+                        .sample(nums_to_discard[cmd_idx])
+                        .index)
+        df_meta_data = df_meta_data.drop(index=idxs_discard)
+    # Randomly sample batches of batch_size with same command until all samples are used
+    batches_list = []
+    num_batches = int(len(df_meta_data) / batch_size)
+    # while not df_meta_data.empty:
+    for _ in tqdm(range(num_batches)):
+        # Next cmd to build batch with
+        cmd = df_meta_data.sample()["command"].item()
+        df_batch = df_meta_data.query("command == @cmd").sample(batch_size).copy()
+        df_meta_data = df_meta_data.drop(index=df_batch.index).reset_index(drop=True)
+        batches_list.append(df_batch)
+    
+    return pd.concat(batches_list, ignore_index=True).drop(columns=["command"])
+
 
 def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None, df_meta_data_noisy=None):
     
