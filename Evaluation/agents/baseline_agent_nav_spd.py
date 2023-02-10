@@ -57,14 +57,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # LOAD MODEL FILE
         """
-        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3
         
-        net = Resnet_Baseline_V3()
-
-        root = os.path.join(os.getenv("GITLAB_ROOT"),
-                                           "models", "resnet_baseline", "weights",
-                                           "Resnet_Baseline_V3")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-5.pth"))) # TODO Change to some model checkpoint
 
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                                            "models", "resnet_baseline", "weights",
@@ -72,15 +65,24 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         path = os.path.join(root,"resnet_E-5_noise.pth")
 
         net.load_state_dict(torch.load(path)) # TODO Change to some model checkpoint
-        """
-
-        from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4, Resnet_Baseline_V4_Shuffle
-        net = Resnet_Baseline_V4()
+        
+                from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4, Resnet_Baseline_V4_Shuffle
+        net = Resnet_Baseline_V4_Shuffle()
 
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "weights",
                             "Resnet_Baseline_V4_branched")  # TODO Has to be defined
         net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_noise_branched_new_cb.pth")))  # TODO Change to some model checkpoint
+        """
+
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3
+
+        net = Resnet_Baseline_V3()
+
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                            "models", "resnet_baseline", "weights",
+                            "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_6_10_epochs_prob_balanced_steer_only_noisy_2.pt")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -276,13 +278,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         #print(img_batch.shape)
 
         """
-        if self.debug_counter < 1:
+        if self.step % 100 == 0:
             pil_img = img.astype(np.uint8).reshape(160,960,3)
             transform = transforms.Compose([transforms.ToPILImage()])
             print(pil_img.shape)
             pil_img = transform(pil_img)
             pil_img.show()
-            self.debug_counter += 1
+            #self.debug_counter += 1
         """
 
         img_norm = preprocessing["rgb"](img_batch).float()
@@ -341,8 +343,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.brake = 0
         else:
             control.throttle = float(throttle)
-            if brake > 0:
-                control.brake = float(brake)
+            if brake > 0.5:
+                control.brake = float(1)
             else:
                 control.brake = 0#float(brake)
             control.steer = float(steer)
