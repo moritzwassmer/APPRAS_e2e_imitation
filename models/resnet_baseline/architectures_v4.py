@@ -305,7 +305,7 @@ class Resnet_Baseline_V4_No_Shuffle(nn.Module):
         self.branches_throttle = nn.ModuleList()
 
         # Create Branches for all Commands
-        for i in range(0, 7):
+        for i in range(0, 7): # TODO Branch 0 not used, should be adjusted later on
             mlp_branch = mlp(num_ftrs + 128, 256, 256)
             brk = brake_head(256)
             thr = throttle_head(256)
@@ -329,9 +329,9 @@ class Resnet_Baseline_V4_No_Shuffle(nn.Module):
         preds = []
         for i in range(1,6):
             mlp_output = self.branches_mlp[i](x)
-            brake = self.branches_brake[i](mlp_output[mapping_list[i]])
-            steer = self.branches_steer[i](mlp_output[mapping_list[i]])  #
-            throttle = self.branches_throttle[i](mlp_output[mapping_list[i]])
+            brake = self.branches_brake[i](mlp_output[i])
+            steer = self.branches_steer[i](mlp_output[i])  #
+            throttle = self.branches_throttle[i](mlp_output[i])
             y_hat = torch.cat((brake, steer, throttle), axis=1)
             preds.append(y_hat)
 
