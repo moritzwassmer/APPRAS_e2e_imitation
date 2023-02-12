@@ -67,22 +67,25 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net.load_state_dict(torch.load(path)) # TODO Change to some model checkpoint
         
                 from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4, Resnet_Baseline_V4_Shuffle
-        net = Resnet_Baseline_V4_Shuffle()
 
-        root = os.path.join(os.getenv("GITLAB_ROOT"),
-                            "models", "resnet_baseline", "weights",
-                            "Resnet_Baseline_V4_branched")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_noise_branched_new_cb.pth")))  # TODO Change to some model checkpoint
         """
+        """
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3
 
-        from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4_Shuffle
+        net = Resnet_Baseline_V3()
 
-        net = Resnet_Baseline_V4_Shuffle()
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                            "models", "resnet_baseline", "weights",
+                            "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_7_10_epochs_prob_balanced_cmd_only_noisy_2.pt")))  # TODO Change to some model checkpoint
+        """
+        from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4_No_Shuffle_Drop_MLP
+        net = Resnet_Baseline_V4_No_Shuffle_Drop_MLP()
 
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "weights",
                             "Resnet_Baseline_V4_branched")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-3_noise_branched_old_loss.pth")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_noise_branched_drop_mlp.pth")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -352,7 +355,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.steer = float(steer)
             """
             control.throttle = float(throttle)
-            control.brake = float(brake)
+            control.brake = float(brake) if float(brake) > 0.001 else 0
             control.steer = float(steer)
         print("control ",control)
         print("\n")
