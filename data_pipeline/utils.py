@@ -95,11 +95,26 @@ def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None
 
         # Also sort entries here for easier comparability
         df_train = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_train["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
-        if type(df_meta_data_noisy) != type(None):
-            df_meta_data_noisy = df_meta_data_noisy.sort_values(["dir", "measurements"]).reset_index(drop=True)
-            df_train = pd.concat([df_train, df_meta_data_noisy], ignore_index=True)
         df_test_1 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_1["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
         df_test_2 = df_meta_data[df_meta_data["dir"].isin(df_meta_data_routes_test_2["dir"])].sort_values(["dir", "measurements"]).reset_index(drop=True)
+        if type(df_meta_data_noisy) != type(None):
+            # Extract route attributes from df_meta_data_noisy
+            df_meta_data_noisy_routes = df_meta_data_noisy["dir"].drop_duplicates().reset_index(drop=True)
+            df_meta_data_noisy_routes_attr = pd.DataFrame(data=df_meta_data_noisy_routes.str.extract("(Town\d\d)").values, columns=["town"])
+            df_meta_data_noisy_routes_attr["scenario"] = df_meta_data_noisy_routes.str.extract("(Scenario\d)").values
+            df_meta_data_noisy_routes_attr["route"] = df_meta_data_noisy_routes.str.extract("(route.*?)_").values
+            df_meta_data_noisy_routes_attr["dir"] = df_meta_data_noisy_routes
+            # Extract route attributes from df_test_1
+            df_meta_data_test_routes = df_test_1["dir"].drop_duplicates().reset_index(drop=True)
+            df_meta_data_test_routes_attr = pd.DataFrame(data=df_meta_data_test_routes.str.extract("(Town\d\d)").values, columns=["town"])
+            df_meta_data_test_routes_attr["scenario"] = df_meta_data_test_routes.str.extract("(Scenario.*?)_").values
+            df_meta_data_test_routes_attr["route"] = df_meta_data_test_routes.str.extract("(route.*?)_").values
+            # Discard the overlap from the noisy data such that test set gets not corrupted
+            overlap_dirs = df_meta_data_test_routes_attr.merge(df_meta_data_noisy_routes_attr, on=["town", "route"])["dir"]
+            df_meta_data_noisy = df_meta_data_noisy[~df_meta_data_noisy["dir"].isin(overlap_dirs)].copy()
+            df_meta_data_noisy = df_meta_data_noisy.sort_values(["dir", "measurements"]).reset_index(drop=True)
+            df_train = pd.concat([df_train, df_meta_data_noisy], ignore_index=True)
+
         return df_train, df_test_1, df_test_2
     
     
