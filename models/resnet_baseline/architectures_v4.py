@@ -2,6 +2,8 @@ import torch.nn as nn
 import torchvision
 import torch
 
+from torchvision.models import resnet18, ResNet18_Weights
+
 
 def mlp(neurons_in, neurons_out, neurons_hidden):
     return (nn.Sequential(
@@ -485,7 +487,7 @@ class Long_Run(nn.Module):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         # ResNet Architecture with pretrained weights, also bigger resnets available
-        self.net = torchvision.models.resnet18(weights=True)
+        self.net = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
         num_ftrs = self.net.fc.in_features
 
         # Top layer of ResNet which you can modify. We choose Identity to use it as Input for all the heads
