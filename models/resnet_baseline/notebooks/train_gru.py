@@ -1,8 +1,9 @@
 #%%
 import sys
-sys.path.append("")
 import os
 import time
+# sys.path.append("")
+sys.path.append(os.path.join("..", "..", ".."))
 
 import numpy as np
 import torch
@@ -19,7 +20,8 @@ from models.model_trainer import ModelTrainer
 # %%
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
-path_data = os.path.join( "data", "Dataset_Ege", "test_set", "Town10HD_Scenario10_route12_11_28_18_09_19")
+# path_data = os.path.join( "data", "Dataset_Ege", "test_set", "Town10HD_Scenario10_route12_11_28_18_09_19")
+path_data = os.path.join("..", "..", "..", "data", "data")
 
 config_xy = {"used_inputs": ["rgb", "measurements"], 
         "used_measurements": ["speed", "steer", "throttle", "brake", "command"],
