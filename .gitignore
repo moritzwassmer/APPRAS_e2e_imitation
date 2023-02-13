@@ -115,3 +115,4 @@ ipython_config.py
 *.pickle
 *.json
 *.png
+*.csv
