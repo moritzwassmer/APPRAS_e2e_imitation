@@ -56,22 +56,37 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
         # LOAD MODEL FILE
+        """
+        
 
-        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3,  load_weights
-        net = Resnet_Baseline_V3()
-        """
-        root = os.path.join(os.getenv("GITLAB_ROOT"),
-                                           "models", "resnet_baseline", "weights",
-                                           "Resnet_Baseline_V3")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-5.pth"))) # TODO Change to some model checkpoint
-        """
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                                            "models", "resnet_baseline", "weights",
                                            "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
         path = os.path.join(root,"resnet_E-5_noise.pth")
 
         net.load_state_dict(torch.load(path)) # TODO Change to some model checkpoint
+        
+                from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4, Resnet_Baseline_V4_Shuffle
 
+        """
+        """
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout
+
+        net = Resnet_Baseline_V3_Dropout()
+
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                            "models", "resnet_baseline", "weights",
+                            "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_8_10_epochs_prob_balanced_steer_noisy_2.pt")))  # TODO Change to some model checkpoint
+        """
+
+        from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4_No_Shuffle_Drop_MLP
+        net = Resnet_Baseline_V4_No_Shuffle_Drop_MLP()
+
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                            "models", "resnet_baseline", "weights",
+                            "Resnet_Baseline_V4_branched")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_noise_branched_drop_mlp.pth")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -267,13 +282,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         #print(img_batch.shape)
 
         """
-        if self.debug_counter < 1:
+        if self.step % 100 == 0:
             pil_img = img.astype(np.uint8).reshape(160,960,3)
             transform = transforms.Compose([transforms.ToPILImage()])
             print(pil_img.shape)
             pil_img = transform(pil_img)
             pil_img.show()
-            self.debug_counter += 1
+            #self.debug_counter += 1
         """
 
         img_norm = preprocessing["rgb"](img_batch).float()
@@ -311,6 +326,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
         with torch.no_grad():
+            self.net.eval()
             outputs_ = self.net(img_norm,cmd_one_hot,spd_norm)
         brake, steer, throttle = outputs_
         # throttle, steer,brake = outputs_
@@ -331,11 +347,16 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.steer = 0
             control.brake = 0
         else:
+            """
             control.throttle = float(throttle)
-            if brake > 0:
-                control.brake = float(brake)
+            if brake > 0.5:
+                control.brake = float(1)
             else:
                 control.brake = 0#float(brake)
+            control.steer = float(steer)
+            """
+            control.throttle = float(throttle)
+            control.brake = float(brake) if float(brake) > 0.001 else 0
             control.steer = float(steer)
         print("control ",control)
         print("\n")
