@@ -23,6 +23,8 @@ import itertools
 
 from data_pipeline.data_preprocessing import preprocessing
 
+
+
 from agents.navigation.local_planner_behavior import RoadOption
 
 # OUR IMPORTS
@@ -80,13 +82,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_8_10_epochs_prob_balanced_steer_noisy_2.pt")))  # TODO Change to some model checkpoint
         """
 
-        from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4_No_Shuffle_Drop_MLP
-        net = Resnet_Baseline_V4_No_Shuffle_Drop_MLP()
+        from models.resnet_baseline.architectures_v4 import Long_Run
+        net = Long_Run()
 
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "weights",
                             "Resnet_Baseline_V4_branched")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_noise_branched_drop_mlp.pth")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_long_run.pth")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -333,9 +335,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         ### INTERIA STEER MODULATION
 
-        if (tick_data['speed'] < 0.01):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
+        if (tick_data['speed'] < 0.5):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
             self.stuck_detector += 1
-        elif (tick_data['speed'] > 0.01 and is_stuck == False):
+        elif (tick_data['speed'] > 0.5 and is_stuck == False):
             self.stuck_detector = 0
             self.forced_move = 0
 
@@ -356,7 +358,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.steer = float(steer)
             """
             control.throttle = float(throttle)
-            control.brake = float(brake) if float(brake) > 0.001 else 0
+            control.brake = float(brake)
             control.steer = float(steer)
         print("control ",control)
         print("\n")
