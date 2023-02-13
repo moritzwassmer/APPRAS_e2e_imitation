@@ -48,6 +48,7 @@ class ModelTrainer:
             self.sample_weights = [torch.tensor(self.sample_weights[key], device=self.device, dtype=torch.float32) for key in self.sample_weights]
         self.loss_fn_weights = [torch.tensor(self.loss_fn_weights[key], device=self.device, dtype=torch.float32) for key in self.loss_fn_weights]
         self.do_weight_samples = True if sample_weights else False
+        self.do_predict_waypoints = True if dataloader_train.dataset.y.item() == "waypoints" else False
         self.df_performance_stats = None
         self.df_speed_stats = None
         if not os.path.exists("experiment_files"):
@@ -90,8 +91,13 @@ class ModelTrainer:
                 # Move X, Y_true to device
                 X = [X_.to(self.device) for X_ in X]
                 Y_true = [Y_.to(self.device) for Y_ in Y_true]
+                print("Y_true len device: ", len(Y_true))
+                print("Y_true device: ", Y_true[0].size())
+
                 # Y_pred will be on the device where also model and X are
                 Y_pred = self.model(*X)
+                print("Y_pred len: ", len(Y_pred))
+                print("Y_pred: ", Y_pred.size())
                 # Individual losses are already weighted by loss_fn_weights
                 loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=self.do_weight_samples)
                 # Normalizing only necessary if loss_fn_weights don't sum to 1
@@ -179,9 +185,13 @@ class ModelTrainer:
         if do_weight_samples:
             # Weight the individual loss terms by their sample weights
             loss_list = [(self.sample_weights[i][IDX] * self.loss_fns[i](Y_pred[i], Y_true[i])).sum() / self.sample_weights[i][IDX].sum() for i in range(len(Y_true))]
+        # Equally weight, i.e. reduce mean
         else:
-            # Equally weight, i.e. reduce mean
-            loss_list = [self.loss_fns[i](Y_pred[i], Y_true[i]).mean() for i in range(len(Y_true))]
+            if self.do_predict_waypoints:
+                # Y_true will only have length 1
+                loss_list = [self.loss_fns[0](Y_pred, Y_true[0]).mean()]
+            else:
+                loss_list = [self.loss_fns[i](Y_pred[i], Y_true[i]).mean() for i in range(len(Y_true))]
         # Weight each individual loss term by it's loss weight
         loss_list = [self.loss_fn_weights[i] * loss_list[i] for i in range(len(loss_list))]
         return loss_list
