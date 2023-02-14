@@ -10,7 +10,7 @@ def load_weights(net,name):
     net.load_state_dict(torch.load(path))
     return net
 
-
+from torchvision.models import resnet18, ResNet18_Weights
 
 
 
@@ -90,7 +90,7 @@ class Resnet_Baseline_V3(nn.Module):
         super().__init__()
 
         # ResNet Architecture with pretrained weights, also bigger resnets available
-        self.net = torchvision.models.resnet18(weights=True)
+        self.net = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
         num_ftrs = self.net.fc.in_features
 
         # Top layer of ResNet which you can modify. We choose Identity to use it as Input for all the heads

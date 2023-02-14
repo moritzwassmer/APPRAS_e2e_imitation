@@ -119,7 +119,8 @@ class ModelTrainer:
             [train_loss_list[i].append(running_loss_list[i] / num_batches_train) for i in range(len(running_loss_list))]
 
             # TODO: Prints the running loss
-            print(f'\ntrain-loss: {np.mean(train_loss_list):.4f},')
+            train_loss_list_np = np.array(train_loss_list)
+            print(f'\nTrain Loss Individual: {train_loss_list_np[:,-1].round(4)}  Train Loss Total: {(train_loss_list_np[:,-1].sum() / sum(self.loss_fn_weights)):.4f}')
             
             # Validate the network
             batch_loss_list = [0] * len(self.dataloader_test.dataset.y)
@@ -143,7 +144,8 @@ class ModelTrainer:
                     batch_loss_list = [batch_loss + loss_.item() for batch_loss, loss_ in zip(batch_loss_list, loss_list)]
 
                 [val_loss_list[i].append(batch_loss_list[i] / len(self.dataloader_test)) for i in range(len(batch_loss_list))]   
-                print(f'Validation Loss: {np.mean(val_loss_list):.4f}, \n')
+                val_loss_list_np = np.array(val_loss_list)
+                print(f'Val Loss Individual: {val_loss_list_np[:,-1].round(4)}  Val Loss Total: {(val_loss_list_np[:,-1].sum() / sum(self.loss_fn_weights)):.4f}\n')
                 times_val.append(time.time() - start_val)
 
             # Save network if lower validation loss is achieved
