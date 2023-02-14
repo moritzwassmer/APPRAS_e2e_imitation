@@ -113,7 +113,8 @@ class CARLADatasetXY(Dataset):
             data = cv2.imread(path)
             data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
             # reshape to #channels; height; width
-            data = data.reshape([3] + list(data.shape)[:-1])
+            # data = data.reshape([3] + list(data.shape)[:-1])
+            data = np.transpose(data, (2, 0, 1))
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)

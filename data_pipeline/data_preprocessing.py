@@ -13,7 +13,7 @@ def prep_rgb(X_rgb):
     # transforms.CenterCrop(224),
     # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     # transforms.Normalize(mean=[62.4933, 73.9556, 81.5393], std=[55.3234, 54.6214, 58.7628]),
-    transforms.Resize([224, 224]),
+    transforms.Resize([88, 224]),
     transforms.Normalize(mean=[105.6161, 81.5673, 79.6657], std=[66.2220, 60.1001, 66.8309]), # changed to rgb
 
     ])(X_rgb)
@@ -65,7 +65,7 @@ def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-2,1),res = 0.05):
     height_range = hr  # bottom-most to upper-most
 
     # CLIP HEIGHT VALUES - to between min and max heights
-    pixel_values = np.clip(a = z_points,
+    pixel_values = np.clip(a=z_points,
                            a_min=height_range[0],
                            a_max=height_range[1])
 
@@ -97,3 +97,5 @@ preprocessing = {
     "command": prep_command,
     "lidar": transform_lidar_bev
 }
+
+# %%

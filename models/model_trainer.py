@@ -47,10 +47,16 @@ class ModelTrainer:
         if self.sample_weights:
             self.sample_weights = [torch.tensor(self.sample_weights[key], device=self.device, dtype=torch.float32) for key in self.sample_weights]
         self.loss_fn_weights = [torch.tensor(self.loss_fn_weights[key], device=self.device, dtype=torch.float32) for key in self.loss_fn_weights]
-
         self.do_weight_samples = True if sample_weights else False
+        self.do_predict_waypoints = True if dataloader_train.dataset.y.item() == "waypoints" else False
         self.df_performance_stats = None
         self.df_speed_stats = None
+        if not os.path.exists("experiment_files"):
+            os.makedirs("experiment_files")
+        self.dir_experiment_save = os.path.join("experiment_files", datetime.datetime.now().strftime("%Y_%m_%d_%H_%M"))
+        os.makedirs(os.path.join(self.dir_experiment_save, "model_state_dict"))
+        os.makedirs(os.path.join(self.dir_experiment_save, "optimizer_state_dict"))
+        os.makedirs(os.path.join(self.dir_experiment_save, "stats"))
         print(f"Model will be trained on: {self.device}")
 
 
@@ -63,7 +69,7 @@ class ModelTrainer:
         """
         times_epoch, times_forward, times_backward, times_val = [], [], [], []
         print_every = 200
-        total_step = len(self.dataloader_train)
+        num_batches_train = len(self.dataloader_train)
 
         val_loss_min = np.Inf
 
@@ -85,9 +91,16 @@ class ModelTrainer:
                 # Move X, Y_true to device
                 X = [X_.to(self.device) for X_ in X]
                 Y_true = [Y_.to(self.device) for Y_ in Y_true]
+                print("Y_true len device: ", len(Y_true))
+                print("Y_true device: ", Y_true[0].size())
+
                 # Y_pred will be on the device where also model and X are
                 Y_pred = self.model(*X)
+                print("Y_pred len: ", len(Y_pred))
+                print("Y_pred: ", Y_pred.size())
+                # Individual losses are already weighted by loss_fn_weights
                 loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=self.do_weight_samples)
+                # Normalizing only necessary if loss_fn_weights don't sum to 1
                 loss = sum(loss_list) / sum(self.loss_fn_weights)
                 # Set gradients to None to not accumulate them over iteration (more efficient than optimizer.zero_grad())
                 for param in self.model.parameters():
@@ -98,18 +111,18 @@ class ModelTrainer:
                 loss.backward()
                 self.optimizer.step()
                 running_loss_list = [running_loss + loss_.item() for running_loss, loss_ in zip(running_loss_list, loss_list)]
-                
-
+            
                 if (batch_idx) % print_every == 0:
                     print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
-                        .format(epoch, self.n_epochs, batch_idx, total_step, loss.item()))
+                        .format(epoch, self.n_epochs, batch_idx, num_batches_train, loss.item()))
                 times_backward.append(time.time() - start_backward)
-                
-            # Epoch finished, evaluate network and save if network_learned
-            [train_loss_list[i].append(running_loss_list[i] / total_step) for i in range(len(running_loss_list))]
+            [train_loss_list[i].append(running_loss_list[i] / num_batches_train) for i in range(len(running_loss_list))]
 
-            print(f'\ntrain-loss: {np.mean(train_loss_list):.4f},')
-            # batch_loss, batch_loss_brake, batch_loss_steer, batch_loss_throttle = 0, 0, 0, 0
+            # TODO: Prints the running loss
+            train_loss_list_np = np.array(train_loss_list)
+            print(f'\nTrain Loss Individual: {train_loss_list_np[:,-1].round(4)}  Train Loss Total: {(train_loss_list_np[:,-1].sum() / sum(self.loss_fn_weights)):.4f}')
+            
+            # Validate the network
             batch_loss_list = [0] * len(self.dataloader_test.dataset.y)
             start_val = time.time()
             with torch.no_grad():
@@ -131,14 +144,19 @@ class ModelTrainer:
                     batch_loss_list = [batch_loss + loss_.item() for batch_loss, loss_ in zip(batch_loss_list, loss_list)]
 
                 [val_loss_list[i].append(batch_loss_list[i] / len(self.dataloader_test)) for i in range(len(batch_loss_list))]   
-                print(f'Validation Loss: {np.mean(val_loss_list):.4f}, \n')
+                val_loss_list_np = np.array(val_loss_list)
+                print(f'Val Loss Individual: {val_loss_list_np[:,-1].round(4)}  Val Loss Total: {(val_loss_list_np[:,-1].sum() / sum(self.loss_fn_weights)):.4f}\n')
                 times_val.append(time.time() - start_val)
 
             # Save network if lower validation loss is achieved
             val_loss = np.mean(val_loss_list, axis=0)[-1]
             if val_loss < val_loss_min:
                 val_loss_min = val_loss
-                torch.save(self.model.state_dict(), f"{self.model.__class__.__name__}.pt".lower())
+                path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
+                path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
+                torch.save(self.model.state_dict(), path_save_model)
+                torch.save(self.optimizer.state_dict(), path_save_opt)
+
 
             self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
             # Back to training
@@ -147,7 +165,9 @@ class ModelTrainer:
             print("Epoch took: ", str(datetime.timedelta(seconds=int(times_epoch[-1]))))
         writer.close()
         self.df_performance_stats = self.get_performance_stats(train_loss_list, val_loss_list)
+        self.df_performance_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_performance.csv"))
         self.df_speed_stats = self.get_speed_stats(times_epoch, times_forward, times_backward, times_val)
+        self.df_speed_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_speed.csv"))
         if self.upload_tensorboard:
             self.upload_tensorboard_to_cloud(times_epoch)
 
@@ -167,9 +187,13 @@ class ModelTrainer:
         if do_weight_samples:
             # Weight the individual loss terms by their sample weights
             loss_list = [(self.sample_weights[i][IDX] * self.loss_fns[i](Y_pred[i], Y_true[i])).sum() / self.sample_weights[i][IDX].sum() for i in range(len(Y_true))]
+        # Equally weight, i.e. reduce mean
         else:
-            # Equally weight, i.e. reduce mean
-            loss_list = [self.loss_fns[i](Y_pred[i], Y_true[i]).mean() for i in range(len(Y_true))]
+            if self.do_predict_waypoints:
+                # Y_true will only have length 1
+                loss_list = [self.loss_fns[0](Y_pred, Y_true[0]).mean()]
+            else:
+                loss_list = [self.loss_fns[i](Y_pred[i], Y_true[i]).mean() for i in range(len(Y_true))]
         # Weight each individual loss term by it's loss weight
         loss_list = [self.loss_fn_weights[i] * loss_list[i] for i in range(len(loss_list))]
         return loss_list

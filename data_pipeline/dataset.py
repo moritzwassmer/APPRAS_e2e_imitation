@@ -1,3 +1,4 @@
+#%%
 from torch.utils.data import Dataset
 from torchvision import transforms
 import datetime
@@ -75,7 +76,10 @@ class CARLADataset(Dataset):
                 file_path = self.get_file_path_from_df(input_idx, data_point_idx)
                 data_t = self.load_data_from_path(file_path)
                 for meas_idx, meas in enumerate(self.used_measurements):
-                    data[meas_idx, idx_array] = data_t[meas]
+                    if isinstance(data_t[meas], list):
+                        data[meas_idx, idx_array] = data_t[meas][0]
+                    else:
+                        data[meas_idx, idx_array] = data_t[meas]
                 idx_array += 1
             for meas_idx, meas in enumerate(self.used_measurements):
                 sample[meas] = data[meas_idx]
@@ -113,7 +117,8 @@ class CARLADataset(Dataset):
             data = cv2.imread(path)
             data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
             # reshape to #channels; height; width
-            data = data.reshape([3] + list(data.shape)[:-1])
+            # data = data.reshape([3] + list(data.shape)[:-1])
+            data = np.transpose(data, (2, 0, 1))
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)
@@ -284,3 +289,5 @@ class CARLADatasetMultiProcessing(Dataset):
         return np.array(shapes).astype(np.int_)
     
 
+
+# %%
