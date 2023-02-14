@@ -20,7 +20,7 @@ class Resnet_Baseline_V3_Dropout(nn.Module):
             super().__init__()
 
             # ResNet Architecture with pretrained weights, also bigger resnets available
-            self.net = torchvision.models.resnet18(weights=True)
+            self.net = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
             num_ftrs = self.net.fc.in_features
 
             # Top layer of ResNet which you can modify. We choose Identity to use it as Input for all the heads
@@ -32,23 +32,23 @@ class Resnet_Baseline_V3_Dropout(nn.Module):
             # Input Layer fuer cmd, spd
             self.cmd_input = nn.Sequential(
                 nn.Linear(7, 128),
-                nn.Tanh(),
+                nn.ReLU(),
                 # nn.Dropout(p=0.5, inplace=False)
             )
 
             self.spd_input = nn.Sequential(
                 nn.Linear(1, 128),
-                nn.Tanh(),
+                nn.ReLU(),
                 # nn.Dropout(p=0.5, inplace=False)
             )
 
             # MLP
             self.mlp = nn.Sequential(
                 nn.Linear(num_ftrs + 128 + 128, num_ftrs + 128 + 128),
-                nn.Tanh(),  # nn.LeakyReLU()
+                nn.ReLU(),  # nn.LeakyReLU()
                 # nn.Dropout(p=0.5, inplace=False),
                 nn.Linear(num_ftrs + 128 + 128, num_ftrs + 128 + 128),
-                nn.Tanh()  # , #nn.LeakyReLU()
+                nn.ReLU()  # , #nn.LeakyReLU()
                 # nn.Dropout(p=0.5, inplace=False)
             )
 
@@ -99,23 +99,23 @@ class Resnet_Baseline_V3(nn.Module):
         # Input Layer fuer cmd, spd
         self.cmd_input = nn.Sequential(
             nn.Linear(7, 128),
-            nn.Tanh(),
+            nn.ReLU(),
             # nn.Dropout(p=0.5, inplace=False)
         )
 
         self.spd_input = nn.Sequential(
             nn.Linear(1, 128),
-            nn.Tanh(),
+            nn.ReLU(),
             # nn.Dropout(p=0.5, inplace=False)
         )
 
         # MLP
         self.mlp = nn.Sequential(
             nn.Linear(num_ftrs + 128 + 128, num_ftrs + 128 + 128),
-            nn.Tanh(),  # nn.LeakyReLU()
+            nn.ReLU(),  # nn.LeakyReLU()
             # nn.Dropout(p=0.5, inplace=False),
             nn.Linear(num_ftrs + 128 + 128, num_ftrs + 128 + 128),
-            nn.Tanh()  # , #nn.LeakyReLU()
+            nn.ReLU()  # , #nn.LeakyReLU()
             # nn.Dropout(p=0.5, inplace=False)
         )
 
