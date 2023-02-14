@@ -65,7 +65,7 @@ def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-2,1),res = 0.05):
     height_range = hr  # bottom-most to upper-most
 
     # CLIP HEIGHT VALUES - to between min and max heights
-    pixel_values = np.clip(a = z_points,
+    pixel_values = np.clip(a=z_points,
                            a_min=height_range[0],
                            a_max=height_range[1])
 
