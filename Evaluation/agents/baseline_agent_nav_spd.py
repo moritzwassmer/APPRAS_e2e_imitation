@@ -88,7 +88,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "weights",
                             "Resnet_Baseline_V4_branched")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-4_long_run.pth")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-11_long_run.pth")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
