@@ -116,3 +116,4 @@ ipython_config.py
 *.json
 *.png
 *.csv
+*.txt
