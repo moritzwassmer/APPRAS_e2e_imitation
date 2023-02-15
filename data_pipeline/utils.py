@@ -192,5 +192,10 @@ def get_sample_weights_of_dataset(dataset, num_bins=5, multilabel_option=False):
 
     if multilabel_option:
         sample_weights = np.prod(np.vstack(sample_weights.values()).T, axis=1)
-        sample_weights = {"multilabel": sample_weights}
+        # Detect ede cases
+        boundary_to_edge_cases = np.quantile(sample_weights, 0.999)
+        sample_weights_clipped = sample_weights.copy()
+        # Clip edge cases weight to the boundary weight, such that theses cases don't dominate too severely
+        sample_weights_clipped[np.argwhere(sample_weights_clipped > boundary_to_edge_cases).flatten()] = boundary_to_edge_cases
+        sample_weights = {"multilabel": sample_weights_clipped}
     return sample_weights
