@@ -151,17 +151,18 @@ class ModelTrainer:
                 torch.save(self.model.state_dict(), path_save_model)
                 torch.save(self.optimizer.state_dict(), path_save_opt)
 
-
+            # Save stats    
+            self.df_performance_stats = self.get_performance_stats(train_loss_list, val_loss_list)
+            self.df_performance_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_performance.csv"))
+            self.df_speed_stats = self.get_speed_stats(times_epoch, times_forward, times_backward, times_val)
+            self.df_speed_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_speed.csv"))
             self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
             # Back to training
             self.model.train()
             times_epoch.append(time.time() - start_epoch)
             print("Epoch took: ", str(datetime.timedelta(seconds=int(times_epoch[-1]))))
         writer.close()
-        self.df_performance_stats = self.get_performance_stats(train_loss_list, val_loss_list)
-        self.df_performance_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_performance.csv"))
-        self.df_speed_stats = self.get_speed_stats(times_epoch, times_forward, times_backward, times_val)
-        self.df_speed_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_speed.csv"))
+
         if self.upload_tensorboard:
             self.upload_tensorboard_to_cloud(times_epoch)
 
