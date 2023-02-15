@@ -116,4 +116,4 @@ ipython_config.py
 *.json
 *.png
 *.csv
-models/resnet_baseline/notebooks/experiment_files/2023_02_14_18_27/stats/stats.txt
+*.txt
