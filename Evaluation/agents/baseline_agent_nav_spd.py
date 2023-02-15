@@ -82,13 +82,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_8_10_epochs_prob_balanced_steer_noisy_2.pt")))  # TODO Change to some model checkpoint
         """
 
-        from models.resnet_baseline.architectures_v4 import Long_Run
-        net = Long_Run()
-
+        from models.resnet_baseline.architectures_v4 import Long_Run_2
+        net = Long_Run_2()
+        #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
         root = os.path.join(os.getenv("GITLAB_ROOT"),
-                            "models", "resnet_baseline", "weights",
-                            "Resnet_Baseline_V4_branched")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-11_long_run.pth")))  # TODO Change to some model checkpoint
+                            "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-6_long_run_2.pth")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -358,7 +357,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.steer = float(steer)
             """
             control.throttle = float(throttle)
-            control.brake = float(brake)
+            if brake > 0.01:
+                control.brake = float(brake)
+            else:
+                control.brake = float(0)
             control.steer = float(steer)
         print("control ",control)
         print("\n")
