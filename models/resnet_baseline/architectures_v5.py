@@ -51,30 +51,30 @@ class Baseline_V5(nn.Module):
         # Input Layer fuer cmd, spd
         self.cmd_input = nn.Sequential(
             nn.Linear(7, 128),
-            nn.Tanh() #nn.LeakyReLU() # TODO
+            nn.ReLU() #nn.LeakyReLU() # TODO
         )
         
         self.spd_input = nn.Sequential(
             nn.Linear(1, 128),
-            nn.Tanh() #nn.LeakyReLU() # TODO
+            nn.ReLU() #nn.LeakyReLU() # TODO
         )
         
         # MLP
         self.mlp = nn.Sequential(
             nn.Linear(num_ftrs+128+128, num_ftrs+8),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.5, inplace=False),
             nn.Linear(num_ftrs+8, 200),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.5, inplace=False),
             nn.Linear(200, 100),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.3, inplace=False),
             nn.Linear(100, 30),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.2, inplace=False),
             nn.Linear(30, 10),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.2, inplace=False)
         )
 
