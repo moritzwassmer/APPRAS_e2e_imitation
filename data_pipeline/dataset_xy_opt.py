@@ -43,22 +43,23 @@ class CARLADatasetXYOpt(Dataset):
         speed = measurements["speed"]
         command = measurements["command"]
 
-        waypoints_global = measurements["waypoints"]
+        waypoints_global = np.array(measurements["waypoints"])[:4]
         theta = measurements["theta"]
         x_position = measurements["x"]
         y_position = measurements["y"]
         waypoints_local = self.project_global_waypoints_to_local(waypoints_global, x_position, y_position, theta)
 
-        x_sample = {"rgb": rgb_np, "command": command, "speed": speed}
+        x_sample = {"rgb": rgb_np, "command": command, "speed": np.array([speed])}
         y_sample = {"waypoints": waypoints_local}
         return x_sample, y_sample, idx
 
     def load_rgb(self, path):
         img = cv2.imread(path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
-            # reshape to #channels; height; width
+        # reshape to #channels; height; width
         #img = img.reshape([3] + list(img.shape)[:-1])
         img = np.transpose(img, (2, 0, 1))
+        img = img.astype("float32")
         return img
 
     def load_measurements(self, path):
