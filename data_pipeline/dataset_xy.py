@@ -111,10 +111,14 @@ class CARLADatasetXY(Dataset):
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
-            data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
-            # reshape to #channels; height; width
-            # data = data.reshape([3] + list(data.shape)[:-1])
-            data = np.transpose(data, (2, 0, 1))
+            # If rgb
+            if data.shape[0] == 160:
+                data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+                # Reshape to C, H, W
+                data = np.transpose(data, (2, 0, 1))
+            # LiDAR
+            else:
+                data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)
