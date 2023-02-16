@@ -44,10 +44,10 @@ class CARLADatasetXYOpt(Dataset):
         command = measurements["command"]
 
         waypoints_global = np.array(measurements["waypoints"])[:4]
-        theta = measurements["theta"]
+        compass = measurements["theta"]
         x_position = measurements["x"]
         y_position = measurements["y"]
-        waypoints_local = self.project_global_waypoints_to_local(waypoints_global, x_position, y_position, theta)
+        waypoints_local = self.project_global_waypoints_to_local(waypoints_global, x_position, y_position, compass)
 
         x_sample = {"rgb": rgb_np, "command": command, "speed": np.array([speed])}
         y_sample = {"waypoints": waypoints_local}
@@ -67,7 +67,8 @@ class CARLADatasetXYOpt(Dataset):
             measurements = json.load(f)
         return measurements
     
-    def project_global_waypoints_to_local(self, waypoints, x, y, theta):
+    def project_global_waypoints_to_local(self, waypoints, x, y, compass):
+        theta = compass + np.pi/2
         waypoints = np.asarray(waypoints)
         waypoints = waypoints[:, :2]
         R = np.array([
