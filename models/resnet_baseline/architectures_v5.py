@@ -1,9 +1,8 @@
-#%%
+
 import numpy as np
 import torch
 import torch.nn as nn
 from collections import deque
-#%%
 import torchvision
 
 """
@@ -36,7 +35,7 @@ class PIDController(object):
         return self._K_P * error + self._K_I * integral + self._K_D * derivative
 
 
-class Baseline_V5(nn.Module):
+class Resnet_Baseline_V5(nn.Module):
     
     def __init__(self):
         super().__init__()
@@ -159,4 +158,3 @@ class Baseline_V5(nn.Module):
         out = torch.stack([wp1,wp2,wp3,wp4],1)
 
         return out
-# %%
