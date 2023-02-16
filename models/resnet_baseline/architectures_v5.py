@@ -142,7 +142,7 @@ class Baseline_V5(nn.Module):
         cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
         
-        x_0 = torch.zeros(size=(rgb.shape[0], self.num_wyp_coord), dtype=rgb.dtype).to(rgb.device)
+        x_0 = torch.zeros(size=(rgb.shape[0], self.num_wyp_coord), dtype=rgb.dtype, device=rgb.device)
         
         x = torch.cat((rgb, cmd, spd),1)
         x = self.mlp(x)
