@@ -42,15 +42,15 @@ class CARLADatasetXYOpt(Dataset):
         measurements = self.load_measurements(self.measurements_paths[idx])
         speed = measurements["speed"]
         command = measurements["command"]
-        steer = measurements["steer"]
-        throttle = measurements["throttle"]
-        brake = measurements["brake"]
-        waypoints = measurements["waypoints"]
+
+        waypoints_global = measurements["waypoints"]
+        theta = measurements["theta"]
+        x_position = measurements["x"]
+        y_position = measurements["y"]
+        waypoints_local = self.project_global_waypoints_to_local(waypoints_global, x_position, y_position, theta)
 
         x_sample = {"rgb": rgb_np, "command": command, "speed": speed}
-        # y_sample = {"brake": brake, "steer": steer, "throttle": throttle}
-        y_sample = {"waypoints": np.array(waypoints)}
-
+        y_sample = {"waypoints": waypoints_local}
         return x_sample, y_sample, idx
 
     def load_rgb(self, path):
@@ -65,4 +65,15 @@ class CARLADatasetXYOpt(Dataset):
         with open(path, 'r') as f:
             measurements = json.load(f)
         return measurements
-            
+    
+    def project_global_waypoints_to_local(self, waypoints, x, y, theta):
+        waypoints = np.asarray(waypoints)
+        waypoints = waypoints[:, :2]
+        R = np.array([
+                [np.cos(theta), -np.sin(theta)],
+                [np.sin(theta), np.cos(theta)]
+                ])
+
+        local_command_points = np.array([waypoints[:,0]-x, waypoints[:,1]-y])
+        local_command_points = R.T.dot(local_command_points)
+        return local_command_points.T
