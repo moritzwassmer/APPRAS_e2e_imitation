@@ -40,6 +40,9 @@ class Baseline_V5(nn.Module):
     
     def __init__(self):
         super().__init__()
+
+        # Number of coordinates for a single waypoint (x,y)=2 OR (x,y,z)=3
+        self.num_wyp_coord = 2
         
         # ResNet Architecture with pretrained weights, also bigger resnets available
         self.net = torchvision.models.resnet18(weights=False)
@@ -78,29 +81,31 @@ class Baseline_V5(nn.Module):
             #nn.Dropout(p=0.2, inplace=False)
         )
 
+        
+
         self.gru1 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru1_dropout = nn.Linear(10, 3)
+        self.gru1_dropout = nn.Linear(10, self.num_wyp_coord)
 
         self.gru2 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru2_dropout = nn.Linear(10, 3)
+        self.gru2_dropout = nn.Linear(10, self.num_wyp_coord)
 
         self.gru3 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru3_dropout = nn.Linear(10, 3)
+        self.gru3_dropout = nn.Linear(10, self.num_wyp_coord)
 
         self.gru4 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru4_dropout = nn.Linear(10, 3)
+        self.gru4_dropout = nn.Linear(10, self.num_wyp_coord)
 
         # self.control_turn = PIDController(1.25, .75, .3, 20)
         # self.control_speed = PIDController(5., .5, 1., 20)
@@ -137,7 +142,7 @@ class Baseline_V5(nn.Module):
         cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
         
-        x_0 = torch.zeros(size=(rgb.shape[0], 3), dtype=rgb.dtype).to(rgb.device)
+        x_0 = torch.zeros(size=(rgb.shape[0], self.num_wyp_coord), dtype=rgb.dtype).to(rgb.device)
         
         x = torch.cat((rgb, cmd, spd),1)
         x = self.mlp(x)
