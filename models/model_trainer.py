@@ -48,7 +48,7 @@ class ModelTrainer:
             self.sample_weights = [torch.tensor(self.sample_weights[key], device=self.device, dtype=torch.float32) for key in self.sample_weights]
         self.loss_fn_weights = [torch.tensor(self.loss_fn_weights[key], device=self.device, dtype=torch.float32) for key in self.loss_fn_weights]
         self.do_weight_samples = True if sample_weights else False
-        self.do_predict_waypoints = True if dataloader_train.dataset.y.item() == "waypoints" else False
+        self.do_predict_waypoints = True if "waypoints" in dataloader_train.dataset.y else False
         self.df_performance_stats = None
         self.df_speed_stats = None
         if not os.path.exists("experiment_files"):
@@ -91,13 +91,8 @@ class ModelTrainer:
                 # Move X, Y_true to device
                 X = [X_.to(self.device) for X_ in X]
                 Y_true = [Y_.to(self.device) for Y_ in Y_true]
-                print("Y_true len device: ", len(Y_true))
-                print("Y_true device: ", Y_true[0].size())
-
                 # Y_pred will be on the device where also model and X are
                 Y_pred = self.model(*X)
-                print("Y_pred len: ", len(Y_pred))
-                print("Y_pred: ", Y_pred.size())
                 # Individual losses are already weighted by loss_fn_weights
                 loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=self.do_weight_samples)
                 # Normalizing only necessary if loss_fn_weights don't sum to 1
@@ -154,7 +149,9 @@ class ModelTrainer:
                 val_loss_min = val_loss
                 path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
                 path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
+                self.model.cpu()
                 torch.save(self.model.state_dict(), path_save_model)
+                self.model.to(self.device)
                 torch.save(self.optimizer.state_dict(), path_save_opt)
 
             # Save stats    
