@@ -56,7 +56,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.lidar_pos = self.config.lidar_pos  # x, y, z coordinates of the LiDAR position.
         self.iou_treshold_nms = self.config.iou_treshold_nms # Iou threshold used for Non Maximum suppression on the Bounding Box predictions.
 
-
+        self.timeout_counter = 0
+        self.induce_timeout = False
+        self.prev_pos = np.array([0,0])
         # LOAD MODEL FILE
 
         from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout_2
@@ -160,7 +162,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         gps = input_data['gps'][1][:2]
         speed = input_data['speed'][1]['speed']
 
-        print("speed"+str(speed))
+        #print("speed"+str(speed))
 
         compass = input_data['imu'][1][-1]
         if (np.isnan(compass) == True): # CARLA 0.9.10 occasionally sends NaN values in the compass
@@ -179,11 +181,32 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.gps_buffer.append(pos)
         denoised_pos = np.average(self.gps_buffer, axis=0)
 
+
+        #print(str(denoised_pos))
+        #print(type(denoised_pos))
+
+        #print(self.prev_pos)
+        distance_travelled = np.linalg.norm(denoised_pos-self.prev_pos, ord=2)
+        print(distance_travelled)
+
+        if distance_travelled < 0.1:
+            self.timeout_counter += 1
+        else:
+            self.timeout_counter = 0
+
+        print(self.timeout_counter)
+
+        self.prev_pos = denoised_pos
+
+
+
+
+
         waypoint_route = self._route_planner.run_step(denoised_pos)
         next_wp, next_cmd = waypoint_route[0] # waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0] # TODO Might be wrong
 
         #roadOption = RoadOption(next_cmd.value)
-        print(str(next_cmd))
+        #print(str(next_cmd))
 
         #print(next_wp)
         #print(next_cmd)
@@ -340,7 +363,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             else:
                 control.brake = float(0)
             control.steer = float(steer)
-        print("control ",control)
+
+        if self.timeout_counter == 1000:
+            control.throttle = 0 # TODO
+            # control.steer = 0
+            control.steer = 0# float(steer)
+            control.brake = 0
+
+        #print("control ",control)
         print("\n")
         self.control = control
 
