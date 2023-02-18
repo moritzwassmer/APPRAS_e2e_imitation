@@ -61,12 +61,22 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.prev_pos = np.array([0,0])
         # LOAD MODEL FILE
 
+        # TODO Baseline 3
+        """ 
         from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout_2
         net = Resnet_Baseline_V3_Dropout_2()
-        #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
         net.load_state_dict(torch.load(os.path.join(root, "resnet_v3_E-10.pth")))  # TODO Change to some model checkpoint
+        """
+
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout
+        net = Resnet_Baseline_V3_Dropout(0.25)
+        #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
+
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                            "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_ep10_cpu.pt")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -187,14 +197,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         #print(self.prev_pos)
         distance_travelled = np.linalg.norm(denoised_pos-self.prev_pos, ord=2)
-        print(distance_travelled)
+        #print(distance_travelled)
 
         if distance_travelled < 0.1:
             self.timeout_counter += 1
         else:
             self.timeout_counter = 0
 
-        print(self.timeout_counter)
+        #print(self.timeout_counter)
 
         self.prev_pos = denoised_pos
 
@@ -206,14 +216,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         next_wp, next_cmd = waypoint_route[0] # waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0] # TODO Might be wrong
 
         #roadOption = RoadOption(next_cmd.value)
-        #print(str(next_cmd))
+        print(str(next_cmd))
 
         #print(next_wp)
         #print(next_cmd)
 
         result['next_command'] = next_cmd.value
         #print(next_cmd.value)
-        #print("\n")
+        print("\n")
 
         theta = compass + np.pi/2
         R = np.array([
@@ -364,14 +374,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
                 control.brake = float(0)
             control.steer = float(steer)
 
-        if self.timeout_counter == 1000:
+        if self.timeout_counter > self.config.stuck_threshold*2 + 50:
             control.throttle = 0 # TODO
             # control.steer = 0
             control.steer = 0# float(steer)
             control.brake = 0
 
         #print("control ",control)
-        print("\n")
+        #print("\n")
         self.control = control
 
         self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
