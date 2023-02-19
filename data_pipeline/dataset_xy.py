@@ -1,3 +1,7 @@
+# import sys
+# import os
+# sys.append
+# from data_pipeline.data_preprocessing import transform_lidar_bev
 from torch.utils.data import Dataset
 import datetime
 from torchvision import transforms
@@ -111,14 +115,16 @@ class CARLADatasetXY(Dataset):
         data = None
         if file_format in [".png", ".jpg"]:
             data = cv2.imread(path)
-            # If rgb
-            if data.shape[0] == 160:
-                data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
-                # Reshape to C, H, W
-                data = np.transpose(data, (2, 0, 1))
-            # LiDAR
-            else:
-                data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
+            data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+            data = np.transpose(data, (2, 0, 1))
+            # # If rgb
+            # if data.shape[0] == 160:
+            #     data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+            #     # Reshape to C, H, W
+            #     data = np.transpose(data, (2, 0, 1))
+            # # LiDAR
+            # else:
+            #     data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
         elif file_format == ".json":
             with open(path, 'r') as f:
                 data = json.load(f)
@@ -126,6 +132,7 @@ class CARLADatasetXY(Dataset):
             data = np.load(path, allow_pickle=True)
             # discard the weird single number for lidar
             data = data[1]
+            # data = transform_lidar_bev(data)
         elif file_format == ".npz":
             with np.load(path, allow_pickle=True) as f:
                 data = f["arr_0"]
