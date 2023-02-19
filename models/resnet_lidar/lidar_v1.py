@@ -70,8 +70,8 @@ class Resnet_Lidar_V1(nn.Module):
         )
 
     # Forward Pass of the Model
-    def forward(self, rgb, cmd, spd, lidar):
-        rgb = self.rgb_net(rgb)  # BRG
+    def forward(self, rgb, lidar, cmd, spd):
+        rgb = self.rgb_net(rgb)
         lidar = self.lidar_net(lidar) 
         cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
