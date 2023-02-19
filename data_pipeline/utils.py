@@ -129,7 +129,7 @@ def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None
 
 
 def measurements_to_df(df_meta_data):
-    idxs, paths, speed, steer, throttle, brake, command = [], [], [], [], [], [], []
+    idxs, paths, speed, steer, throttle, brake, command, theta, x, y, x_command, y_command, waypoints = [], [], [], [], [], [], [], [], [], [], [], [], []
     # df_meta_data = dataset.df_meta_data
     for idx in tqdm(df_meta_data.index.values):
         path = os.path.join(df_meta_data["dir"][idx], "measurements", df_meta_data["measurements"][idx])
@@ -142,8 +142,16 @@ def measurements_to_df(df_meta_data):
         steer.append(measurements_dict["steer"])
         throttle.append(measurements_dict["throttle"])
         brake.append(measurements_dict["brake"])
-
-    df_measurements = pd.DataFrame({"dir": paths, "speed": speed, "command": command, "steer": steer, "throttle": throttle, "brake": brake}, index=list(range(len(speed))))
+        theta.append(measurements_dict["theta"])
+        x.append(measurements_dict["x"])
+        y.append(measurements_dict["y"])
+        x_command.append(measurements_dict["x_command"])
+        y_command.append(measurements_dict["y_command"])
+        waypoints.append(measurements_dict["waypoints"])
+    df_measurements = pd.DataFrame({"dir": paths, "speed": speed, "command": command, 
+                    "steer": steer, "throttle": throttle, "brake": brake,
+                    "theta": theta, "x": x, "y": y, "x_command": x_command, "y_command": y_command,
+                    "waypoints": waypoints}, index=list(range(len(speed))))
     # df_measurements.to_pickle("measurements_.pickle")
     return df_measurements
 
