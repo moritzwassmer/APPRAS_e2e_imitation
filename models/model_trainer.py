@@ -41,6 +41,7 @@ class ModelTrainer:
         self.loss_fn_weights = loss_fn_weights
         self.upload_tensorboard = upload_tensorboard
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
+        #self.device = torch.device("cpu")
         self.model.to(self.device)
         # Put sample weights and loss function weights to device 
         self.loss_fns = [self.loss_fns[key] for key in self.loss_fns]
@@ -147,12 +148,14 @@ class ModelTrainer:
             val_loss = np.mean(val_loss_list, axis=0)[-1]
             if val_loss < val_loss_min:
                 val_loss_min = val_loss
-                path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
                 path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
-                self.model.cpu()
-                torch.save(self.model.state_dict(), path_save_model)
-                self.model.to(self.device)
                 torch.save(self.optimizer.state_dict(), path_save_opt)
+            # TODO: To be moved in if block again
+            path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
+            self.model.cpu()
+            torch.save(self.model.state_dict(), path_save_model)
+            self.model.to(self.device)
+            
 
             # Save stats    
             self.df_performance_stats = self.get_performance_stats(train_loss_list, val_loss_list)
@@ -173,9 +176,12 @@ class ModelTrainer:
         """
         Takes X and Y as dictionaries and returns them as lists (sorted like the dict)
         """
+        # TODO: Hacky unsqueezing --> in final dataset class timestep dimension can get discarded anyways
+        X["rgb"] = torch.squeeze(X["rgb"])
+        if "lidar_bev" in X.keys():
+            X["lidar_bev"] = torch.squeeze(X["lidar_bev"])
         # Attention: this is the point where the dicts are transferred to lists, 
         # where the elements of the lists are sorted in the previous key orders.
-        X["rgb"] = torch.squeeze(X["rgb"])
         X = [self.preprocessing[key](X[key]).float() for key in X]
         Y_true = [Y_true[key].float() for key in Y_true]
         return X, Y_true
