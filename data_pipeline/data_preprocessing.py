@@ -1,4 +1,4 @@
-from torchvision import transforms
+from torchvision import transforms as T
 import torch
 import numpy as np
 
@@ -8,19 +8,16 @@ These dictionaries shall be used directly after a batch is loaded!
 """
 
 def prep_rgb(X_rgb):
-    return transforms.Compose([
-    # transforms.Resize(256),
-    # transforms.CenterCrop(224),
-    # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    # transforms.Normalize(mean=[62.4933, 73.9556, 81.5393], std=[55.3234, 54.6214, 58.7628]),
-    # transforms.Normalize(mean=[105.6161, 81.5673, 79.6657], std=[66.2220, 60.1001, 66.8309]), # changed to rgb; Before rgb bug spotted
-    transforms.Resize([88, 224]),
-    transforms.Normalize(mean=[97.6954, 94.3324, 82.6693], std=[67.6040, 65.7858, 64.7942]),
-    ])(X_rgb)
+    # return T.Compose([
+    # T.Resize([88, 224]),
+    # T.Normalize(mean=[97.6954, 94.3324, 82.6693], std=[67.6040, 65.7858, 64.7942]),
+    # ])(X_rgb)
+    X_rgb = T.Resize([88, 224])(X_rgb)
+    X_rgb = X_rgb / 255
+    X_rgb = T.Normalize(mean=[0.3849, 0.3718, 0.3261], std=[0.2632, 0.2562, 0.2523])(X_rgb)
+    return X_rgb
 
 def prep_speed(X_spd):
-    # speed_mean: 2.382234  old 2.250456762830466
-    # speed_std: 1.724884  old 0.3021584025489131
     return ((X_spd - 2.382234)/ 1.724884)
     
 def prep_command(X_cmd):
@@ -28,7 +25,19 @@ def prep_command(X_cmd):
     X_cmd = torch.nn.functional.one_hot(X_cmd, num_classes=7)
     return torch.squeeze(X_cmd)
 
-def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-2,1),res = 0.05):
+def prep_lidar_bev(X_lidar_bev):
+    # Transformed to 641*641 i.e Resize is necessary
+    # X_lidar_bev = T.Resize([224, 224])(X_lidar_bev)
+    # X_lidar_bev = X_lidar_bev / 255
+    # X_lidar_bev = T.Normalize(mean=[0.0015, 0.0015, 0.0015], std=[0.0236, 0.0236, 0.0236])(X_lidar_bev)
+
+    # Transformed to 161*161 i.e Resize NOT necessary
+    X_lidar_bev = X_lidar_bev / 255
+    X_lidar_bev = T.Normalize(mean=[0.0605, 0.0605, 0.0605], std=[0.1498, 0.1498, 0.1498])(X_lidar_bev)
+    return X_lidar_bev
+    
+
+def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-4,1),res = 0.2):
     side_range = sr    # left-most to right-most
     fwd_range =fr   # back-most to forward-most
 
@@ -90,12 +99,10 @@ def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-2,1),res = 0.05):
     return im
 
 
-
 preprocessing = {
     "rgb": prep_rgb, 
     "speed": prep_speed,
     "command": prep_command,
-    "lidar": transform_lidar_bev
+    "lidar_bev": prep_lidar_bev
 }
 
-# %%

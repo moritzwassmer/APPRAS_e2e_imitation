@@ -1,9 +1,8 @@
-#%%
+
 import numpy as np
 import torch
 import torch.nn as nn
 from collections import deque
-#%%
 import torchvision
 
 """
@@ -36,10 +35,13 @@ class PIDController(object):
         return self._K_P * error + self._K_I * integral + self._K_D * derivative
 
 
-class Baseline_V4(nn.Module):
+class Resnet_Baseline_V5(nn.Module):
     
     def __init__(self):
         super().__init__()
+
+        # Number of coordinates for a single waypoint (x,y)=2 OR (x,y,z)=3
+        self.num_wyp_coord = 2
         
         # ResNet Architecture with pretrained weights, also bigger resnets available
         self.net = torchvision.models.resnet18(weights=False)
@@ -51,56 +53,58 @@ class Baseline_V4(nn.Module):
         # Input Layer fuer cmd, spd
         self.cmd_input = nn.Sequential(
             nn.Linear(7, 128),
-            nn.Tanh() #nn.LeakyReLU() # TODO
+            nn.ReLU() #nn.LeakyReLU() # TODO
         )
         
         self.spd_input = nn.Sequential(
             nn.Linear(1, 128),
-            nn.Tanh() #nn.LeakyReLU() # TODO
+            nn.ReLU() #nn.LeakyReLU() # TODO
         )
         
         # MLP
         self.mlp = nn.Sequential(
             nn.Linear(num_ftrs+128+128, num_ftrs+8),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.5, inplace=False),
             nn.Linear(num_ftrs+8, 200),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.5, inplace=False),
             nn.Linear(200, 100),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.3, inplace=False),
             nn.Linear(100, 30),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.2, inplace=False),
             nn.Linear(30, 10),
-            nn.Tanh(), #nn.LeakyReLU()
+            nn.ReLU(), #nn.LeakyReLU()
             #nn.Dropout(p=0.2, inplace=False)
         )
 
+        
+
         self.gru1 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru1_dropout = nn.Linear(10, 3)
+        self.gru1_dropout = nn.Linear(10, self.num_wyp_coord)
 
         self.gru2 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru2_dropout = nn.Linear(10, 3)
+        self.gru2_dropout = nn.Linear(10, self.num_wyp_coord)
 
         self.gru3 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru3_dropout = nn.Linear(10, 3)
+        self.gru3_dropout = nn.Linear(10, self.num_wyp_coord)
 
         self.gru4 =  nn.GRUCell(
-            input_size = 10 + 3, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
+            input_size = 10 + self.num_wyp_coord, # STATE VECTOR, PAST-WAYPOINT, GOAL-LOCATION
             hidden_size = 10
         )
-        self.gru4_dropout = nn.Linear(10, 3)
+        self.gru4_dropout = nn.Linear(10, self.num_wyp_coord)
 
         # self.control_turn = PIDController(1.25, .75, .3, 20)
         # self.control_speed = PIDController(5., .5, 1., 20)
@@ -137,7 +141,7 @@ class Baseline_V4(nn.Module):
         cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
         
-        x_0 = torch.zeros(size=(rgb.shape[0], 3), dtype=rgb.dtype).to(rgb.device)
+        x_0 = torch.zeros(size=(rgb.shape[0], self.num_wyp_coord), dtype=rgb.dtype, device=rgb.device)
         
         x = torch.cat((rgb, cmd, spd),1)
         x = self.mlp(x)
@@ -154,4 +158,3 @@ class Baseline_V4(nn.Module):
         out = torch.stack([wp1,wp2,wp3,wp4],1)
 
         return out
-# %%

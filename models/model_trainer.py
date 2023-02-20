@@ -41,6 +41,7 @@ class ModelTrainer:
         self.loss_fn_weights = loss_fn_weights
         self.upload_tensorboard = upload_tensorboard
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
+        #self.device = torch.device("cpu")
         self.model.to(self.device)
         # Put sample weights and loss function weights to device 
         self.loss_fns = [self.loss_fns[key] for key in self.loss_fns]
@@ -48,7 +49,7 @@ class ModelTrainer:
             self.sample_weights = [torch.tensor(self.sample_weights[key], device=self.device, dtype=torch.float32) for key in self.sample_weights]
         self.loss_fn_weights = [torch.tensor(self.loss_fn_weights[key], device=self.device, dtype=torch.float32) for key in self.loss_fn_weights]
         self.do_weight_samples = True if sample_weights else False
-        self.do_predict_waypoints = True if dataloader_train.dataset.y.item() == "waypoints" else False
+        self.do_predict_waypoints = True if "waypoints" in dataloader_train.dataset.y else False
         self.df_performance_stats = None
         self.df_speed_stats = None
         if not os.path.exists("experiment_files"):
@@ -91,13 +92,8 @@ class ModelTrainer:
                 # Move X, Y_true to device
                 X = [X_.to(self.device) for X_ in X]
                 Y_true = [Y_.to(self.device) for Y_ in Y_true]
-                print("Y_true len device: ", len(Y_true))
-                print("Y_true device: ", Y_true[0].size())
-
                 # Y_pred will be on the device where also model and X are
                 Y_pred = self.model(*X)
-                print("Y_pred len: ", len(Y_pred))
-                print("Y_pred: ", Y_pred.size())
                 # Individual losses are already weighted by loss_fn_weights
                 loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=self.do_weight_samples)
                 # Normalizing only necessary if loss_fn_weights don't sum to 1
@@ -152,10 +148,14 @@ class ModelTrainer:
             val_loss = np.mean(val_loss_list, axis=0)[-1]
             if val_loss < val_loss_min:
                 val_loss_min = val_loss
-                path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
                 path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
-                torch.save(self.model.state_dict(), path_save_model)
                 torch.save(self.optimizer.state_dict(), path_save_opt)
+            # TODO: To be moved in if block again
+            path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
+            self.model.cpu()
+            torch.save(self.model.state_dict(), path_save_model)
+            self.model.to(self.device)
+            
 
             # Save stats    
             self.df_performance_stats = self.get_performance_stats(train_loss_list, val_loss_list)
@@ -176,9 +176,12 @@ class ModelTrainer:
         """
         Takes X and Y as dictionaries and returns them as lists (sorted like the dict)
         """
+        # TODO: Hacky unsqueezing --> in final dataset class timestep dimension can get discarded anyways
+        X["rgb"] = torch.squeeze(X["rgb"])
+        if "lidar_bev" in X.keys():
+            X["lidar_bev"] = torch.squeeze(X["lidar_bev"])
         # Attention: this is the point where the dicts are transferred to lists, 
         # where the elements of the lists are sorted in the previous key orders.
-        X["rgb"] = torch.squeeze(X["rgb"])
         X = [self.preprocessing[key](X[key]).float() for key in X]
         Y_true = [Y_true[key].float() for key in Y_true]
         return X, Y_true

@@ -7,10 +7,32 @@ import numpy as np
 import os
 import cv2
 import json
-
 """
-This really is the smallest, most-specialized Dataset possible for our scenario and still it isn't
-faster than the much bigger more specialized version.
+Settings:
+
+1.
+x: rgb, command, speed
+y: brake, steer, throttle
+
+2. 
+x: rgb, lidar, command, speed
+y: brake, steer, throttle
+
+3.
+x: rgb, command, speed
+y: waypoints
+
+4. 
+x: rgb, lidar, command, speed
+y: waypoints
+
+5.
+x: rgb, x, y, speed
+y: waypoints
+
+6.
+x: rgb, lidar, x, y, speed
+y: waypoints
 """
 
 class CARLADatasetXYOpt(Dataset):
@@ -56,8 +78,7 @@ class CARLADatasetXYOpt(Dataset):
     def load_rgb(self, path):
         img = cv2.imread(path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # TODO CHANGED TO RGB
-        # reshape to #channels; height; width
-        #img = img.reshape([3] + list(img.shape)[:-1])
+        # Reshape to C,H,W
         img = np.transpose(img, (2, 0, 1))
         img = img.astype("float32")
         return img
