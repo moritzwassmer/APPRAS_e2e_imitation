@@ -62,22 +62,21 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         # LOAD MODEL FILE
 
         # TODO Baseline 3
-        """ 
-        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout_2
-        net = Resnet_Baseline_V3_Dropout_2()
+
+        from models.resnet_baseline.architectures_v4 import MyResnet
+        net = MyResnet()
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_v3_E-10.pth")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_v4_no_balance_less_drop_E-4.pth")))  # TODO Change to some model checkpoint
         """
 
         from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout
         net = Resnet_Baseline_V3_Dropout(0.25)
-        #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
 
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
         net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_ep10_cpu.pt")))  # TODO Change to some model checkpoint
-
+        """
         self.net = net.cuda()
 
         self.debug_counter = 0
@@ -341,6 +340,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             outputs_ = self.net(img_norm,cmd_one_hot,spd_norm)
         brake, steer, throttle = outputs_
         # throttle, steer,brake = outputs_
+        print(brake)
 
         ### INTERIA STEER MODULATION
 
@@ -374,11 +374,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
                 control.brake = float(0)
             control.steer = float(steer)
 
+        """
         if self.timeout_counter > self.config.stuck_threshold*2 + 50:
             control.throttle = 0 # TODO
             # control.steer = 0
             control.steer = 0# float(steer)
             control.brake = 0
+        """
 
         #print("control ",control)
         #print("\n")
