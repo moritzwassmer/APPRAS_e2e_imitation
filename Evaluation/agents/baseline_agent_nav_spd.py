@@ -62,7 +62,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         # LOAD MODEL FILE
 
         # TODO Baseline 3
-
+        """
         from models.resnet_baseline.architectures_v4 import MyResnet
         net = MyResnet()
         root = os.path.join(os.getenv("GITLAB_ROOT"),
@@ -70,13 +70,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net.load_state_dict(torch.load(os.path.join(root, "resnet_v4_no_balance_less_drop_E-4.pth")))  # TODO Change to some model checkpoint
         """
 
-        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout
-        net = Resnet_Baseline_V3_Dropout(0.25)
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout_2
+        net = Resnet_Baseline_V3_Dropout_2()
 
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_ep10_cpu.pt")))  # TODO Change to some model checkpoint
-        """
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_v3_E-10.pth")))  # TODO Change to some model checkpoint
+
         self.net = net.cuda()
 
         self.debug_counter = 0
@@ -301,7 +301,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             #self.debug_counter += 1
         """
 
-        img_norm = preprocessing["rgb"](img_batch).float()
+        img_norm = preprocessing["rgb_old"](img_batch).float() # TODO
         #print(img_norm.shape)
 
         """
