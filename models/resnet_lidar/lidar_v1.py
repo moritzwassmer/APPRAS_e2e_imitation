@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torchvision
 import torch
+from torchvision.models import resnet18, ResNet18_Weights, ResNet34_Weights
 
 import os
 
@@ -10,7 +11,6 @@ def load_weights(net,name):
     net.load_state_dict(torch.load(path))
     return net
 
-from torchvision.models import resnet18, ResNet18_Weights
 
 
 ## Adapted from models/resnet_baseline/architectures_v3.py, added lidar resnet in parallel
