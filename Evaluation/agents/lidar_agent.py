@@ -57,12 +57,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.iou_treshold_nms = self.config.iou_treshold_nms # Iou threshold used for Non Maximum suppression on the Bounding Box predictions.
 
 
-        from models.resnet_lidar.lidar_v1 import Resnet_Lidar_V1
-        net = Resnet_Lidar_V1()
+        from models.resnet_lidar.lidar_v1 import Resnet_Lidar_V1_Dropout
+        net = Resnet_Lidar_V1_Dropout(0.25)
         #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_lidar", "weights")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_ep5.pt")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep10.pt")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -346,7 +346,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         if is_stuck:
             control.throttle = 0.5
-            control.steer = 0
+            control.steer = float(steer)
             control.brake = 0
         else:
             """
@@ -358,8 +358,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.steer = float(steer)
             """
             control.throttle = float(throttle)
-            if brake > 0.01:
-                control.brake = float(brake)
+            if brake > 0.05:
+                control.brake = float(brake) # TODO
             else:
                 control.brake = float(0)
             control.steer = float(steer)

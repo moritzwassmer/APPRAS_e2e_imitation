@@ -56,38 +56,26 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.lidar_pos = self.config.lidar_pos  # x, y, z coordinates of the LiDAR position.
         self.iou_treshold_nms = self.config.iou_treshold_nms # Iou threshold used for Non Maximum suppression on the Bounding Box predictions.
 
-
+        self.timeout_counter = 0
+        self.induce_timeout = False
+        self.prev_pos = np.array([0,0])
         # LOAD MODEL FILE
+
+        # TODO Baseline 3
         """
-        
-
-        root = os.path.join(os.getenv("GITLAB_ROOT"),
-                                           "models", "resnet_baseline", "weights",
-                                           "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
-        path = os.path.join(root,"resnet_E-5_noise.pth")
-
-        net.load_state_dict(torch.load(path)) # TODO Change to some model checkpoint
-        
-                from models.resnet_baseline.architectures_v4 import Resnet_Baseline_V4, Resnet_Baseline_V4_Shuffle
-
-        """
-        """
-        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout
-
-        net = Resnet_Baseline_V3_Dropout()
-
-        root = os.path.join(os.getenv("GITLAB_ROOT"),
-                            "models", "resnet_baseline", "weights",
-                            "Resnet_Baseline_V3_Noise")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_8_10_epochs_prob_balanced_steer_noisy_2.pt")))  # TODO Change to some model checkpoint
-        """
-
-        from models.resnet_baseline.architectures_v4 import Long_Run_2
-        net = Long_Run_2()
-        #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
+        from models.resnet_baseline.architectures_v4 import MyResnet
+        net = MyResnet()
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_E-6_long_run_2.pth")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_v4_no_balance_less_drop_E-4.pth")))  # TODO Change to some model checkpoint
+        """
+
+        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout_2
+        net = Resnet_Baseline_V3_Dropout_2()
+
+        root = os.path.join(os.getenv("GITLAB_ROOT"),
+                            "models", "resnet_baseline", "notebooks")  # TODO Has to be defined
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_v3_E-10.pth")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -183,7 +171,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         gps = input_data['gps'][1][:2]
         speed = input_data['speed'][1]['speed']
 
-        print("speed"+str(speed))
+        #print("speed"+str(speed))
 
         compass = input_data['imu'][1][-1]
         if (np.isnan(compass) == True): # CARLA 0.9.10 occasionally sends NaN values in the compass
@@ -202,6 +190,27 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.gps_buffer.append(pos)
         denoised_pos = np.average(self.gps_buffer, axis=0)
 
+
+        #print(str(denoised_pos))
+        #print(type(denoised_pos))
+
+        #print(self.prev_pos)
+        distance_travelled = np.linalg.norm(denoised_pos-self.prev_pos, ord=2)
+        #print(distance_travelled)
+
+        if distance_travelled < 0.1:
+            self.timeout_counter += 1
+        else:
+            self.timeout_counter = 0
+
+        #print(self.timeout_counter)
+
+        self.prev_pos = denoised_pos
+
+
+
+
+
         waypoint_route = self._route_planner.run_step(denoised_pos)
         next_wp, next_cmd = waypoint_route[0] # waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0] # TODO Might be wrong
 
@@ -213,7 +222,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         result['next_command'] = next_cmd.value
         #print(next_cmd.value)
-        #print("\n")
+        print("\n")
 
         theta = compass + np.pi/2
         R = np.array([
@@ -292,7 +301,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             #self.debug_counter += 1
         """
 
-        img_norm = preprocessing["rgb"](img_batch).float()
+        img_norm = preprocessing["rgb_old"](img_batch).float() # TODO
         #print(img_norm.shape)
 
         """
@@ -331,6 +340,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             outputs_ = self.net(img_norm,cmd_one_hot,spd_norm)
         brake, steer, throttle = outputs_
         # throttle, steer,brake = outputs_
+        print(brake)
 
         ### INTERIA STEER MODULATION
 
@@ -345,7 +355,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         if is_stuck:
             control.throttle = 0.5
-            control.steer = 0
+            #control.steer = 0
+            control.steer = float(steer)
             control.brake = 0
         else:
             """
@@ -362,8 +373,17 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             else:
                 control.brake = float(0)
             control.steer = float(steer)
-        print("control ",control)
-        print("\n")
+
+        """
+        if self.timeout_counter > self.config.stuck_threshold*2 + 50:
+            control.throttle = 0 # TODO
+            # control.steer = 0
+            control.steer = 0# float(steer)
+            control.brake = 0
+        """
+
+        #print("control ",control)
+        #print("\n")
         self.control = control
 
         self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
