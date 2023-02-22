@@ -704,16 +704,40 @@ class Long_Run_2(nn.Module):
 
         return brake, steer, throttle
 
+def steer_head(neurons_in):  # [-1,1] Range Output
+    str_head = nn.Sequential(
+        nn.Linear(neurons_in, 1),
+        nn.Tanh())
+    return str_head
+
+
+def throttle_head(neurons_in):  # [0,1] Range Output
+    thr_head = nn.Sequential(
+        nn.Linear(neurons_in, 1),
+        nn.Sigmoid())
+    return thr_head
+
+
+def brake_head(neurons_in):  # [0,1] Range Output
+    brk_head = nn.Sequential(
+        nn.Linear(neurons_in, 1),
+        nn.Sigmoid())
+    return brk_head
+
+def to_cuda_if_possible(data, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')): # TODO HAS TO BE LIKE THAT FOR INFERENCE
+    return data.to(device) if device else data
+
+
 class MyResnet(nn.Module):
 
     def mlp(self, neurons_in, neurons_out, neurons_hidden):
         return (nn.Sequential(
             nn.Linear(neurons_in, neurons_hidden),
             nn.ReLU(),
-            # nn.Dropout(p=0.2, inplace=False),
+            nn.Dropout(p=0.1, inplace=False),
             nn.Linear(neurons_hidden, neurons_hidden),
             nn.ReLU(),
-            # nn.Dropout(p=0.1, inplace=False),
+            nn.Dropout(p=0.1, inplace=False),
             nn.Linear(neurons_hidden, neurons_out),
             nn.ReLU()
         ))
@@ -724,30 +748,30 @@ class MyResnet(nn.Module):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         # ResNet Architecture with pretrained weights, also bigger resnets available
-        self.net = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
+        self.net = torchvision.models.resnet34(weights=ResNet34_Weights.DEFAULT)
         num_ftrs = self.net.fc.in_features
 
         # Top layer of ResNet which you can modify. We choose Identity to use it as Input for all the heads
         self.net.fc = nn.Sequential(
-            nn.Dropout(p=0.2, inplace=False)
-            # nn.Identity()
+            nn.Dropout(p=0.18, inplace=False)
+            #nn.Identity()
         )
 
         self.spd_input = nn.Sequential(
             nn.Linear(1, 128),
             nn.ReLU(),
-            # nn.Dropout(p=0.15, inplace=False),
+            nn.Dropout(p=0.1, inplace=False),
             nn.Linear(128, 128),
             nn.ReLU(),
-            # nn.Dropout(p=0.15, inplace=False),
+            nn.Dropout(p=0.1, inplace=False),
             nn.Linear(128, 128),
-            nn.ReLU()  # nn.LeakyReLU() # TODO
-            # nn.Dropout(p=0.5, inplace=False)
+            nn.ReLU(),  # nn.LeakyReLU() # TODO
+            nn.Dropout(p=0.1, inplace=False)
         )
 
         # shared MLP
         self.shared = nn.Sequential(
-            nn.Identity()
+            self.mlp(num_ftrs + 128, num_ftrs + 128, num_ftrs + 128)
         )
 
         self.branches_mlp = nn.ModuleList()
@@ -779,10 +803,10 @@ class MyResnet(nn.Module):
         # print(rgb.shape)
 
         # Move Data to respective Branch depending on Command
-        index = to_cuda_if_possible(torch.arange(len(nav[:, 0])) , self.device)
+        index = to_cuda_if_possible(torch.arange(len(nav[:, 0])), self.device)
         cmd = to_cuda_if_possible(torch.where(nav)[1], self.device)
-        index = to_cuda_if_possible(torch.unsqueeze(index, 1) , self.device)
-        cmd = to_cuda_if_possible(torch.unsqueeze(cmd, 1) , self.device)
+        index = to_cuda_if_possible(torch.unsqueeze(index, 1), self.device)
+        cmd = to_cuda_if_possible(torch.unsqueeze(cmd, 1), self.device)
         # mapping = to_cuda_if_possible(torch.cat((index,cmd),axis=1),self.device)
         classes = to_cuda_if_possible(torch.unique(cmd), self.device)
 

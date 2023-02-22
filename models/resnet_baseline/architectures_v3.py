@@ -215,33 +215,33 @@ class MyResnet(nn.Module):
         super().__init__()
 
         # ResNet Architecture with pretrained weights, also bigger resnets available
-        self.net = torchvision.models.resnet34(weights=ResNet34_Weights.DEFAULT)
+        self.net = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
         num_ftrs = self.net.fc.in_features
 
         # Top layer of ResNet which you can modify. We choose Identity to use it as Input for all the heads
-        self.net.fc = nn.Dropout(p=0.25, inplace=False)
+        self.net.fc = nn.Dropout(p=0, inplace=False)
 
         # Input Layer fuer cmd, spd
         self.cmd_input = nn.Sequential(
             nn.Linear(7, 128),
             nn.ReLU(),
-            nn.Dropout(p=0.25, inplace=False)
+            nn.Dropout(p=0.3, inplace=False)
         )
 
         self.spd_input = nn.Sequential(
             nn.Linear(1, 128),
             nn.ReLU(),
-            nn.Dropout(p=0.25, inplace=False)
+            nn.Dropout(p=0.3, inplace=False)
         )
 
         # MLP
         self.mlp = nn.Sequential(
             nn.Linear(num_ftrs + 128 + 128, num_ftrs + 128 + 128),
             nn.ReLU(),
-            nn.Dropout(p=0.25, inplace=False),
+            nn.Dropout(p=0.3, inplace=False),
             nn.Linear(num_ftrs + 128 + 128, num_ftrs + 128 + 128),
-            nn.ReLU() ,
-            nn.Dropout(p=0.25, inplace=False)
+            nn.ReLU(),
+            nn.Dropout(p=0.2, inplace=False)
         )
 
         # Regression Heads for Throttle, Brake and Steering
@@ -273,3 +273,4 @@ class MyResnet(nn.Module):
         x = self.mlp(x)
         # x = self.net.fc(x)
         return self.brk_head(x), self.str_head(x), self.thr_head(x)  # TODO 3 Change new order
+
