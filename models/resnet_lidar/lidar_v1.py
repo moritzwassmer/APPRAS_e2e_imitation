@@ -157,3 +157,81 @@ class Resnet_Lidar_V1_Dropout(nn.Module):
 
         # x = self.net.fc(x)
         return self.brk_head(x), self.str_head(x), self.thr_head(x)  # TODO 3 Change new order
+
+
+
+class Resnet_Lidar_V1_Dropout_2(nn.Module):
+
+    def __init__(self):
+            super().__init__()
+
+            # RGB
+            self.rgb_net = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
+            num_ftrs_rgb = self.rgb_net.fc.in_features
+            self.rgb_net.fc = nn.Sequential(
+                nn.Identity(),
+                nn.Dropout(p=0.2, inplace=False)
+            )
+
+            # Lidar
+            self.lidar_net = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
+            num_ftrs_lidar = self.lidar_net.fc.in_features
+            self.lidar_net.fc = nn.Sequential(
+                nn.Identity(),
+                nn.Dropout(p=0, inplace=False)
+            )
+
+            # Input Layer fuer cmd, spd
+            self.cmd_input = nn.Sequential(
+                nn.Linear(7, 128),
+                nn.ReLU(),
+                nn.Dropout(p=0.3, inplace=False)
+            )
+
+            self.spd_input = nn.Sequential(
+                nn.Linear(1, 128),
+                nn.ReLU(),
+                nn.Dropout(p=0.3, inplace=False)
+            )
+
+            # MLP
+            self.mlp = nn.Sequential(
+                nn.Linear(num_ftrs_rgb + num_ftrs_lidar + 128 + 128, num_ftrs_rgb + num_ftrs_lidar + 128 + 128),
+                nn.ReLU(),
+                nn.Dropout(p=0.3, inplace=False),
+                nn.Linear(num_ftrs_rgb + num_ftrs_lidar + 128 + 128, num_ftrs_rgb + num_ftrs_lidar + 128 + 128),
+                nn.ReLU(), 
+                nn.Dropout(p=0.2, inplace=False)
+            )
+
+            # Regression Heads for Throttle, Brake and Steering
+            self.thr_head = nn.Sequential(
+                nn.Linear(num_ftrs_rgb + num_ftrs_lidar + 128 + 128, 1),
+                nn.Sigmoid()  # [0,1] Range Output
+
+            )
+
+            self.brk_head = nn.Sequential(
+                nn.Linear(num_ftrs_rgb + num_ftrs_lidar + 128 + 128, 1),
+                nn.Sigmoid()  # [0,1] Range Output
+
+            )
+
+            self.str_head = nn.Sequential(
+                nn.Linear(num_ftrs_rgb + num_ftrs_lidar + 128 + 128, 1),
+                nn.Tanh()  # [-1,1] Range Output
+
+            )
+
+    # Forward Pass of the Model
+    def forward(self, rgb, lidar, cmd, spd):
+        rgb = self.rgb_net(rgb) 
+        lidar = self.lidar_net(lidar) 
+        cmd = self.cmd_input(cmd)
+        spd = self.spd_input(spd)
+
+        x = torch.cat((rgb, lidar, cmd, spd), 1)
+        x = self.mlp(x)
+
+        # x = self.net.fc(x)
+        return self.brk_head(x), self.str_head(x), self.thr_head(x)  # TODO 3 Change new order
