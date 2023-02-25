@@ -62,7 +62,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_lidar", "weights")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep10.pt")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep5_best.pt")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 

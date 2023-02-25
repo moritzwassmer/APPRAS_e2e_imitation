@@ -15,7 +15,7 @@ def prep_rgb(X_rgb):
     # X_rgb = T.Resize([88, 224])(X_rgb)
     # TODO: hacky use of AugMix by commenting in/out 
     # X_rgb = T.AugMix()(X_rgb.to(torch.uint8))
-    X_rgb = T.Resize([80, 480])(X_rgb)
+    X_rgb = T.Resize([88, 224])(X_rgb)
     X_rgb = X_rgb / 255
     # X_rgb = T.Normalize(mean=[0.3849, 0.3718, 0.3261], std=[0.2632, 0.2562, 0.2523])(X_rgb)
     X_rgb = T.Normalize(mean=[0.3848, 0.3718, 0.3261], std=[0.2632, 0.2562, 0.2523])(X_rgb)
