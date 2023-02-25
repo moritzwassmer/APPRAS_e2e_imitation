@@ -26,8 +26,6 @@ def prep_rgb_old(X_rgb):
     T.Resize([88, 224]),
     T.Normalize(mean=[97.6954, 94.3324, 82.6693], std=[67.6040, 65.7858, 64.7942]),
     ])(X_rgb)
-    X_rgb = T.Resize([88, 224])(X_rgb)
-    return X_rgb
 
 def prep_speed(X_spd):
     return ((X_spd - 2.382234)/ 1.724884)
