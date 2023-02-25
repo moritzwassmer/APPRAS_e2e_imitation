@@ -14,11 +14,19 @@ def prep_rgb(X_rgb):
     # ])(X_rgb)
     # X_rgb = T.Resize([88, 224])(X_rgb)
     # TODO: hacky use of AugMix by commenting in/out 
-    X_rgb = T.AugMix()(X_rgb.to(torch.uint8))
+    # X_rgb = T.AugMix()(X_rgb.to(torch.uint8))
     X_rgb = T.Resize([80, 480])(X_rgb)
     X_rgb = X_rgb / 255
     # X_rgb = T.Normalize(mean=[0.3849, 0.3718, 0.3261], std=[0.2632, 0.2562, 0.2523])(X_rgb)
     X_rgb = T.Normalize(mean=[0.3848, 0.3718, 0.3261], std=[0.2632, 0.2562, 0.2523])(X_rgb)
+    return X_rgb
+
+def prep_rgb_old(X_rgb):
+    return T.Compose([
+    T.Resize([88, 224]),
+    T.Normalize(mean=[97.6954, 94.3324, 82.6693], std=[67.6040, 65.7858, 64.7942]),
+    ])(X_rgb)
+    X_rgb = T.Resize([88, 224])(X_rgb)
     return X_rgb
 
 def prep_speed(X_spd):
@@ -104,7 +112,8 @@ def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-4,1),res = 0.2):
 
 
 preprocessing = {
-    "rgb": prep_rgb, 
+    "rgb": prep_rgb,
+    "rgb_old": prep_rgb_old,
     "speed": prep_speed,
     "command": prep_command,
     "lidar_bev": prep_lidar_bev
