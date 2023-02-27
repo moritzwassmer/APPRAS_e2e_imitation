@@ -121,14 +121,14 @@ class Resnet_Lidar_V1_Dropout(nn.Module):
                 nn.Linear(num_ftrs_rgb + num_ftrs_lidar + 128 + 128, num_ftrs_rgb + 128 + 128),
                 nn.ReLU(),
                 nn.Dropout(p=dropout_rate, inplace=False),
-                nn.Linear(num_ftrs_rgb +  128 + 128, num_ftrs_rgb + 128 + 128),
-                nn.ReLU(), 
+                nn.Linear(num_ftrs_rgb + 128 + 128, num_ftrs_rgb + 128 + 128),
+                nn.ReLU(),
                 nn.Dropout(p=dropout_rate, inplace=False)
             )
 
             # Regression Heads for Throttle, Brake and Steering
             self.thr_head = nn.Sequential(
-                nn.Linear(num_ftrs_rgb  + 128 + 128, 1),
+                nn.Linear(num_ftrs_rgb + 128 + 128, 1),
                 nn.Sigmoid()  # [0,1] Range Output
 
             )
