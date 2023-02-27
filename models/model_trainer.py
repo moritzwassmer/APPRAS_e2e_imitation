@@ -145,11 +145,11 @@ class ModelTrainer:
                 times_val.append(time.time() - start_val)
 
             # Save network if lower validation loss is achieved
-            val_loss = np.mean(val_loss_list, axis=0)[-1]
-            if val_loss < val_loss_min:
-                val_loss_min = val_loss
-                path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
-                torch.save(self.optimizer.state_dict(), path_save_opt)
+            # val_loss = np.mean(val_loss_list, axis=0)[-1]
+            # if val_loss < val_loss_min:
+            # val_loss_min = val_loss
+            path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
+            torch.save(self.optimizer.state_dict(), path_save_opt)
             # TODO: To be moved in if block again
             path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
             self.model.cpu()
