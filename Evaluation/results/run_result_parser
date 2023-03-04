@@ -1,5 +1,5 @@
 set EVAL_FOLDER=%GITLAB_ROOT%\Evaluation
-set XML=%EVAL_FOLDER%\routes\2_routes_2_weathers_t1_t3.xml
+set XML=%EVAL_FOLDER%\routes\longest6\longest6.xml
 set RESULTS=%EVAL_FOLDER%\results\to_be_parsed
 set SAVE_DIR=%EVAL_FOLDER%\results\parsed
 set TOWN_MAPS=%EVAL_FOLDER%\results\town_maps_xodr

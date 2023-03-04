@@ -1,5 +1,5 @@
-set SCENARIOS=%GITLAB_ROOT%\Evaluation\transfuser_lb_stuff\training\scenarios\Scenario1\Town03_Scenario1.json
-set ROUTES=%GITLAB_ROOT%\Evaluation\transfuser_lb_stuff\training\routes\Scenario1\Town03_Scenario1.xml
+set SCENARIOS=%GITLAB_ROOT%\Evaluation\transfuser_lb_stuff\training\scenarios\trainingsdata\Scenario1\Town03_Scenario1.json
+set ROUTES=%GITLAB_ROOT%\Evaluation\transfuser_lb_stuff\training\routes\trainingsdata\Scenario1\Town03_Scenario1.xml
 set REPETITIONS=1
 set DEBUG_CHALLENGE 1
 set TEAM_AGENT=%GITLAB_ROOT%\Evaluation\agents\baseline_agent_nav_spd.py
