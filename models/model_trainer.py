@@ -162,7 +162,7 @@ class ModelTrainer:
             self.df_performance_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_performance.csv"))
             self.df_speed_stats = self.get_speed_stats(times_epoch, times_forward, times_backward, times_val)
             self.df_speed_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_speed.csv"))
-            self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
+            # self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
             # Back to training
             self.model.train()
             times_epoch.append(time.time() - start_epoch)

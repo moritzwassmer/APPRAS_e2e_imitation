@@ -156,8 +156,10 @@ class GlobalConfig:
     route_planner_min_distance = 7.5
     route_planner_max_distance = 50.0
     action_repeat = 2 # Number of times we repeat the networks action. It's 2 because the LiDAR operates at half the frame rate of the simulation
-    stuck_threshold = 1400/action_repeat # Number of frames after which the creep controller starts triggering. Divided by # TODO Inertia param
-    creep_duration = 15 / action_repeat # Number of frames we will creep forward # TODO Inertia param
+    stuck_threshold = 2000/action_repeat # Number of frames after which the creep controller starts triggering. Divided by # TODO Inertia param
+    creep_duration = 30 / action_repeat # Number of frames we will creep forward # TODO Inertia param
+    #1400
+    #15
 
     # Size of the safety box
     safety_box_z_min = -2.0

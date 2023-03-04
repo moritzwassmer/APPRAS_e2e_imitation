@@ -62,7 +62,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         #C:\Users\morit\OneDrive\UNI\Master\WS22\APP-RAS\Programming\models\resnet_baseline\notebooks
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_lidar", "weights")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep10.pt")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep18.pt")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -279,7 +279,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             #self.debug_counter += 1
         """
 
-        img_norm = preprocessing["rgb_old"](img_batch).float()
+        img_norm = preprocessing["rgb"](img_batch).float()
         #print(img_norm.shape)
 
         """
@@ -345,7 +345,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         control = carla.VehicleControl()
 
         if is_stuck: # TODO
-            control.throttle = 0.5
+            control.throttle = 0.63
             control.steer = float(steer)
             control.brake = 0
             pass
