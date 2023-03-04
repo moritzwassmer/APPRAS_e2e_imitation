@@ -70,7 +70,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net.load_state_dict(torch.load(os.path.join(root, "resnet_v4_no_balance_less_drop_E-4.pth")))  # TODO Change to some model checkpoint
         """
 
-        from models.resnet_baseline.architectures_v3 import Resnet_Baseline_V3_Dropout
+        from models.resnet_rgb.architectures_v3 import Resnet_Baseline_V3_Dropout
         net = Resnet_Baseline_V3_Dropout(0.25)
 
         root = os.path.join(os.getenv("GITLAB_ROOT"),
