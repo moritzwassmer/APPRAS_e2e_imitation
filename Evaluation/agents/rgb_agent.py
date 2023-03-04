@@ -20,38 +20,25 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.config_path = path_to_conf_file
         self.step = -1
         self.initialized = False
+        self.debug_counter = 0
 
         # setting machine to avoid loading files
         self.config = GlobalConfig(setting='eval')
-
-
         self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
-
         self.bb_buffer = deque(maxlen=1)
 
         # LOAD MODEL FILE
-
-        # TODO Baseline 3
         from models.resnet_rgb.architectures_v3 import Resnet_Baseline_V3_Dropout
         net = Resnet_Baseline_V3_Dropout(0.25)
-
         root = os.path.join(os.getenv("GITLAB_ROOT"),
-                            "models", "resnet_rgb", "notebooks")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_ep20.pt")))  # TODO Change to some model checkpoint
-
+                            "models", "resnet_rgb", "notebooks")
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_ep20.pt")))
         self.net = net.cuda()
 
-        self.debug_counter = 0
-
-        ################################################################
-
+        # Inertia Problem variables
         self.stuck_detector = 0
         self.forced_move = 0
 
-        self.use_lidar_safe_check = True
-        self.aug_degrees = [0] # Test time data augmentation. Unused we only augment by 0 degree.
-        self.steer_damping = self.config.steer_damping
-        self.rgb_back = None #For debugging
 
 
 
@@ -112,6 +99,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return sensors
 
+    # Processes the images like training dataset
     def scale_crop(self, image, scale=1, start_x=0, crop_x=None, start_y=0, crop_y=None):
         (width, height) = (image.width // scale, image.height // scale)
         if scale != 1:
@@ -126,7 +114,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return cropped_image
 
-    def tick(self, input_data):
+    def tick(self, input_data): # Prepares data to be processed during run_step
 
         # IMAGE PROCESSING
         rgb = []
@@ -140,8 +128,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         # NAVIGATION
         gps = input_data['gps'][1][:2]
         speed = input_data['speed'][1]['speed']
-
-        #print("speed"+str(speed))
 
         compass = input_data['imu'][1][-1]
         if (np.isnan(compass) == True): # CARLA 0.9.10 occasionally sends NaN values in the compass
@@ -159,26 +145,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         self.gps_buffer.append(pos)
         denoised_pos = np.average(self.gps_buffer, axis=0)
-
         waypoint_route = self._route_planner.run_step(denoised_pos)
-        next_wp, next_cmd = waypoint_route[0] # waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0] # TODO Might be wrong
+        next_wp, next_cmd = waypoint_route[0] # waypoint_route[1] if len(waypoint_route) > 1 else waypoint_route[0]
+        result['next_command'] = next_cmd.value
 
         print(str(next_cmd))
-
-        result['next_command'] = next_cmd.value
         print("\n")
-
-        theta = compass + np.pi/2
-        R = np.array([
-            [np.cos(theta), -np.sin(theta)],
-            [np.sin(theta), np.cos(theta)]
-            ])
-
-        local_command_point = np.array([next_wp[0]-denoised_pos[0], next_wp[1]-denoised_pos[1]])
-        local_command_point = R.T.dot(local_command_point)
-        result['target_point'] = tuple(local_command_point)
-
-        #print(result.keys)
 
         return result
 
@@ -197,13 +169,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.brake = 1.0
             self.control = control        
 
-        # Need to run this every step for GPS denoising
         tick_data = self.tick(input_data)
 
         # INERTIA
         is_stuck = False
-        # divide by 2 because we process every second frame
-        # 1100 = 55 seconds * 20 Frames per second, we move for 1.5 second = 30 frames to unblock
         if(self.stuck_detector > self.config.stuck_threshold and self.forced_move < self.config.creep_duration):
             print("Detected agent being stuck. Move for frame: ", self.forced_move)
             is_stuck = True
@@ -213,22 +182,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.forced_move = 0
             self.stuck_detector = 0
 
-        """
-        print(self.step)
-        print(self.stuck_detector)
-        print(self.forced_move)
-        print(is_stuck)
-        """
-
         ### PREPROCESSING
 
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         # RGB
         img = tick_data['rgb'] # 160,960,3
-        #print(img.shape)
         img_batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1, 3).transpose(2, 3).float() #1, 3, 160, 960
-        #print(img_batch.shape)
 
         """
         if self.step % 100 == 0:
@@ -240,8 +200,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             #self.debug_counter += 1
         """
 
-        img_norm = preprocessing["rgb"](img_batch).float() # TODO
-        #print(img_norm.shape)
+        img_norm = preprocessing["rgb"](img_batch).float()
 
         """
         if self.debug_counter < 2: # TODO FLOAT NOT SUPPORT --> TO PIL
@@ -268,17 +227,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         cmd_one_hot = torch.unsqueeze(cmd_one_hot.to(device),0)
         spd_norm = torch.unsqueeze(torch.unsqueeze(spd_norm.to(device), 0),0)
 
-
-        #print("img_norm",np.shape(img_norm))
-        #print("cmd_one_hot",cmd_one_hot)
-        #print("spd_norm",spd_norm)
-
-
         with torch.no_grad():
             self.net.eval()
             outputs_ = self.net(img_norm,cmd_one_hot,spd_norm)
         brake, steer, throttle = outputs_
-        # throttle, steer,brake = outputs_
         print(brake)
 
         ### INTERIA STEER MODULATION
@@ -294,35 +246,15 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         if is_stuck:
             control.throttle = 0.5
-            #control.steer = 0
             control.steer = float(steer)
             control.brake = 0
         else:
-            """
-            control.throttle = float(throttle)
-            if brake > 0.5:
-                control.brake = float(1)
-            else:
-                control.brake = 0#float(brake)
-            control.steer = float(steer)
-            """
             control.throttle = float(throttle)
             if brake > 0.01:
                 control.brake = float(brake)
             else:
                 control.brake = float(0)
             control.steer = float(steer)
-
-        """
-        if self.timeout_counter > self.config.stuck_threshold*2 + 50:
-            control.throttle = 0 # TODO
-            # control.steer = 0
-            control.steer = 0# float(steer)
-            control.brake = 0
-        """
-
-        #print("control ",control)
-        #print("\n")
         self.control = control
 
         return control

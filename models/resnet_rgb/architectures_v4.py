@@ -78,15 +78,12 @@ class Resnet_Baseline_V4(nn.Module): # Initial Version. Is not able to handle a 
     # Forward Pass of the Model
     def forward(self, rgb, cmd, spd):
         rgb = self.net(rgb)  # BRG
-        # rgb = self.net.fc(rgb)
-        # cmd = self.cmd_input(cmd)
         spd = self.spd_input(spd)
 
         x = torch.cat((rgb, spd), 1)
         x = self.mlp(x)
 
         idx = torch.where(cmd[0])[0]
-        # print(idx)
         x = self.branches_mlp[idx](x)
 
         brake = self.branches_brake[idx](x)
