@@ -25,7 +25,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         # setting machine to avoid loading files
         self.config = GlobalConfig(setting='eval')
         self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
-        self.bb_buffer = deque(maxlen=1)
 
         # LOAD MODEL FILE
         from models.resnet_rgb.architectures_v3 import Resnet_Baseline_V3_Dropout
