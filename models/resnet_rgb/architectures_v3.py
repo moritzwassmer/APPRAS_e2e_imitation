@@ -4,12 +4,6 @@ import torch
 
 import os
 
-def load_weights(net,name):
-    root = net.weights_folder
-    path = os.path.join(root, name)
-    net.load_state_dict(torch.load(path))
-    return net
-
 from torchvision.models import ResNet18_Weights
 
 class Resnet_Baseline_V3(nn.Module):
