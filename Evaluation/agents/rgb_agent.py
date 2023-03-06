@@ -18,14 +18,35 @@ def get_entry_point():
 
 
 class HybridAgent(autonomous_agent.AutonomousAgent):
+
+    """Defines the Agent to be run from the leaderboard
+
+    Attributes:
+        track: Sensors or Map track of Leaderboard
+        config_path: path to config file
+        step: Integer of current step of simulation
+        initialized: Boolean wether initialized or not
+        config: config class describing sensor and carla settings
+        gps_buffer: Deque wich stores last GPS positions
+        net: pytorch network
+        stuck_detector: Counter for how long agent didn't move
+        forced_move: Counter for how many steps the car moved when it was detected being stuck
+        _route_planner: RoutePlanner for navigation
+    """
+
     def setup(self, path_to_conf_file, route_index=None):
+        """Sets the agent up and initialized most attributes
+
+        Args:
+            path_to_conf_file: String path to config file
+            route_index: index of route which is run from leaderboard
+        """
         self.track = autonomous_agent.Track.SENSORS
         self.config_path = path_to_conf_file
         self.step = -1
         self.initialized = False
-        self.debug_counter = 0
         self.config = RGB_Config
-        self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
+        self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len)
 
         # Load model architecture and weights
         from models.resnet_rgb.architectures_v3 import Resnet_Baseline_V3_Dropout
@@ -40,16 +61,19 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.forced_move = 0
 
     def _init(self):
+        """Initialized route planner"""
         self._route_planner = RoutePlanner(self.config.route_planner_min_distance, self.config.route_planner_max_distance)
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
 
     def _get_position(self, tick_data):
+        """converts gps position to route planner position"""
         gps = tick_data['gps']
         gps = (gps - self._route_planner.mean) * self._route_planner.scale
         return gps
 
     def sensors(self):
+        """defines sensor suite for agent"""
         sensors = [
                     {
                         'type': 'sensor.camera.rgb',
@@ -98,6 +122,16 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
     # Processes the images like training dataset
     def scale_crop(self, image, scale=1, start_x=0, crop_x=None, start_y=0, crop_y=None):
+        """Scales and crops image to same format as Transfuser trainingdata
+
+        Args:
+            image: String path to config file
+            scale: index of route which is run from leaderboard
+            start_x: pixel x from where to start cropping
+            crop_x: how much to crop starting from x
+            start_y: pixel y from where to start cropping
+            crop_y: how much to crop starting from y
+        """
         (width, height) = (image.width // scale, image.height // scale)
         if scale != 1:
             image = image.resize((width, height))
@@ -111,7 +145,13 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return cropped_image
 
-    def tick(self, input_data): # Prepares data to be processed during run_step
+    def tick(self, input_data):
+
+        """Processes data to trainingsdata format
+
+        Args:
+            input_data: Sensor data retrieved from carla
+        """
 
         # IMAGE PROCESSING
         rgb = []
@@ -155,6 +195,15 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
     @torch.inference_mode() # Faster version of torch_no_grad
     def run_step(self, input_data, timestamp):
+
+        """Runs a decision making step of the agent.
+
+        Also performs preprocessing steps necessary for being fed into the torch network like normalization, dimensionalitys etc.
+
+        Args:
+            input_data: Sensor data retrieved from carla
+        """
+
         self.step += 1
 
         if not self.initialized:
@@ -232,8 +281,16 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return control
 
-# Taken from LBC (Learning by cheating) https://arxiv.org/abs/1912.12294
+# Taken from LBC (Learning by cheating)
 class RoutePlanner(object):
+    """ Defines a class for navigation
+
+    Taken from Learning By Cheating
+    https://arxiv.org/abs/1912.12294
+
+    Repository: https://arxiv.org/abs/1912.12294
+    """
+
     def __init__(self, min_distance, max_distance):
         self.saved_route = deque()
         self.route = deque()
