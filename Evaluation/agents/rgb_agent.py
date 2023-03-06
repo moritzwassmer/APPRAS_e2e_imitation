@@ -228,7 +228,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.stuck_detector = 0
 
         ### PREPROCESSING
-
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         # RGB
@@ -256,7 +255,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         print(brake)
 
         ### INTERIA STEER MODULATION
-
         if (tick_data['speed'] < 0.5):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
             self.stuck_detector += 1
         elif (tick_data['speed'] > 0.5 and is_stuck == False):
@@ -281,14 +279,11 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return control
 
-# Taken from LBC (Learning by cheating)
 class RoutePlanner(object):
     """ Defines a class for navigation
 
-    Taken from Learning By Cheating
-    https://arxiv.org/abs/1912.12294
-
-    Repository: https://arxiv.org/abs/1912.12294
+    Taken from Learning By Cheating: https://arxiv.org/abs/1912.12294
+    Repository: https://github.com/dotchen/LearningByCheating
     """
 
     def __init__(self, min_distance, max_distance):

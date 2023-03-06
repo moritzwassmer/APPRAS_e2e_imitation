@@ -18,7 +18,31 @@ def get_entry_point():
 
 
 class HybridAgent(autonomous_agent.AutonomousAgent):
+
+    """Defines the Agent to be run from the leaderboard
+
+    Attributes:
+        track: Sensors or Map track of Leaderboard
+        config_path: path to config file
+        step: Integer of current step of simulation
+        initialized: Boolean wether initialized or not
+        config: config class describing sensor and carla settings
+        gps_buffer: Deque wich stores last GPS positions
+        net: pytorch network
+        stuck_detector: Counter for how long agent didn't move
+        forced_move: Counter for how many steps the car moved when it was detected being stuck
+        _route_planner: RoutePlanner for navigation
+    """
+
     def setup(self, path_to_conf_file, route_index=None):
+
+        """Sets the agent up and initialized most attributes
+
+        Args:
+            path_to_conf_file: String path to config file
+            route_index: index of route which is run from leaderboard
+        """
+
         self.track = autonomous_agent.Track.SENSORS
         self.config_path = path_to_conf_file
         self.step = -1
@@ -43,16 +67,25 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
     def _init(self):
+
+        """Initialized route planner"""
+
         self._route_planner = RoutePlanner(self.config.route_planner_min_distance, self.config.route_planner_max_distance)
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
 
     def _get_position(self, tick_data):
+
+        """converts gps position to route planner position"""
+
         gps = tick_data['gps']
         gps = (gps - self._route_planner.mean) * self._route_planner.scale
         return gps
 
     def sensors(self):
+
+        """defines sensor suite for agent"""
+
         sensors = [
                     {
                         'type': 'sensor.camera.rgb',
@@ -106,6 +139,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         return sensors
 
     def tick(self, input_data):
+
+        """Processes data to trainingsdata format
+
+        Args:
+            input_data: Sensor data retrieved from carla
+        """
 
         # IMAGE PROCESSING
         rgb = []
@@ -166,8 +205,14 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
     @torch.inference_mode() # Faster version of torch_no_grad
     def run_step(self, input_data, timestamp):
-        self.step += 1
+        """Runs a decision making step of the agent.
 
+        Also performs preprocessing steps necessary for being fed into the torch network like normalization, dimensionalitys etc.
+
+        Args:
+            input_data: Sensor data retrieved from carla
+        """
+        self.step += 1
 
         if not self.initialized:
             self._init()
@@ -182,9 +227,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # INERTIA
         is_stuck = False
-        # divide by 2 because we process every second frame
-        # 1100 = 55 seconds * 20 Frames per second, we move for 1.5 second = 30 frames to unblock
-        if(self.stuck_detector > self.config.stuck_threshold and self.forced_move < self.config.creep_duration): # TODO
+        if(self.stuck_detector > self.config.stuck_threshold and self.forced_move < self.config.creep_duration):
             print("Detected agent being stuck. Move for frame: ", self.forced_move)
             is_stuck = True
             self.forced_move += 1
@@ -200,7 +243,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # RGB
         img = tick_data['rgb'] # 160,960,3
-
         img_batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1, 3).transpose(2, 3).float() #1, 3, 160, 960
         img_norm = preprocessing["rgb"](img_batch).float()
 
@@ -212,9 +254,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         spd = torch.tensor(tick_data['speed'])
         spd_norm = preprocessing["speed"](spd).float()
 
+        # LIDAR
         lidar = transform_lidar_bev(tick_data["lidar"])
-
-
         lidar = torch.tensor(lidar).float()
         lidar = torch.unsqueeze(lidar, 0)
         lidar = lidar.repeat((3, 1, 1)) # ResNet requires 3 channels, create 3 channels by copying
@@ -232,7 +273,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         brake, steer, throttle = outputs_
 
         ### INTERIA STEER MODULATION
-
         if (tick_data['speed'] < 0.5):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
             self.stuck_detector += 1
         elif (tick_data['speed'] > 0.5 and is_stuck == False):
@@ -258,6 +298,18 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         return control
 
     def scale_crop(self, image, scale=1, start_x=0, crop_x=None, start_y=0, crop_y=None):
+
+        """Scales and crops image to same format as Transfuser trainingdata
+
+        Args:
+            image: String path to config file
+            scale: index of route which is run from leaderboard
+            start_x: pixel x from where to start cropping
+            crop_x: how much to crop starting from x
+            start_y: pixel y from where to start cropping
+            crop_y: how much to crop starting from y
+        """
+
         (width, height) = (image.width // scale, image.height // scale)
         if scale != 1:
             image = image.resize((width, height))
@@ -274,8 +326,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
     def destroy(self):
         del self.net
 
-# Taken from LBC
 class RoutePlanner(object):
+    """ Defines a class for navigation
+
+    Taken from Learning By Cheating: https://arxiv.org/abs/1912.12294
+    Repository: https://github.com/dotchen/LearningByCheating
+    """
     def __init__(self, min_distance, max_distance):
         self.saved_route = deque()
         self.route = deque()
