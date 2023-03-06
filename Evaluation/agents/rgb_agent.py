@@ -7,7 +7,7 @@ from collections import deque
 import torch
 import numpy as np
 from leaderboard.autoagents import autonomous_agent
-from config import GlobalConfig
+from config import RGB_Config
 from data_pipeline.data_preprocessing import preprocessing
 
 def get_entry_point():
@@ -23,15 +23,15 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.debug_counter = 0
 
         # setting machine to avoid loading files
-        self.config = GlobalConfig(setting='eval')
+        self.config = RGB_Config
         self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
 
         # LOAD MODEL FILE
         from models.resnet_rgb.architectures_v3 import Resnet_Baseline_V3_Dropout
         net = Resnet_Baseline_V3_Dropout(0.25)
         root = os.path.join(os.getenv("GITLAB_ROOT"),
-                            "models", "resnet_rgb", "notebooks")
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_ep20.pt")))
+                            "models", "resnet_rgb", "weights","Resnet_RGB_V3")
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_baseline_v3_dropout_ep10.pt")))
         self.net = net.cuda()
 
         # Inertia Problem variables
@@ -188,30 +188,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         # RGB
         img = tick_data['rgb'] # 160,960,3
         img_batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1, 3).transpose(2, 3).float() #1, 3, 160, 960
-
-        """
-        if self.step % 100 == 0:
-            pil_img = img.astype(np.uint8).reshape(160,960,3)
-            transform = transforms.Compose([transforms.ToPILImage()])
-            print(pil_img.shape)
-            pil_img = transform(pil_img)
-            pil_img.show()
-            #self.debug_counter += 1
-        """
-
         img_norm = preprocessing["rgb"](img_batch).float()
-
-        """
-        if self.debug_counter < 2: # TODO FLOAT NOT SUPPORT --> TO PIL
-            img = norm_batch[0]
-            pil_img = img.numpy().reshape(160,960,3)
-            transform = transforms.Compose([transforms.ToPILImage()])
-            print(pil_img.shape)
-            pil_img = transform(pil_img)
-            pil_img.show()
-        """
-
-
 
         #  NAVIGATION
         cmd_labels = torch.tensor(tick_data['next_command'])
@@ -258,7 +235,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         return control
 
-# Taken from LBC
+# Taken from LBC (Learning by cheating) https://arxiv.org/abs/1912.12294
 class RoutePlanner(object):
     def __init__(self, min_distance, max_distance):
         self.saved_route = deque()

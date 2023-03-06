@@ -14,7 +14,7 @@ import math
 
 from leaderboard.autoagents import autonomous_agent
 #from model import LidarCenterNet
-from config import GlobalConfig
+from config import Lidar_Config
 #rom data import lidar_to_histogram_features, draw_target_point, lidar_bev_cam_correspondences
 
 from shapely.geometry import Polygon
@@ -46,7 +46,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
 
         # setting machine to avoid loading files
-        self.config = GlobalConfig(setting='eval')
+        self.config = Lidar_Config
 
 
         self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
@@ -188,10 +188,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         lidar = input_data['lidar'][1]#[:, :3]
         result['lidar'] = lidar
 
-        #print(np.shape(result["lidar"]))
-
-        #print(result.keys)
-
         return result
 
 
@@ -232,34 +228,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # RGB
         img = tick_data['rgb'] # 160,960,3
-        #print(img.shape)
+
         img_batch = torch.unsqueeze(torch.tensor(img), dim=0).transpose(1, 3).transpose(2, 3).float() #1, 3, 160, 960
-        #print(img_batch.shape)
-
-        """
-        if self.step % 100 == 0:
-            pil_img = img.astype(np.uint8).reshape(160,960,3)
-            transform = transforms.Compose([transforms.ToPILImage()])
-            print(pil_img.shape)
-            pil_img = transform(pil_img)
-            pil_img.show()
-            #self.debug_counter += 1
-        """
-
         img_norm = preprocessing["rgb"](img_batch).float()
-        #print(img_norm.shape)
-
-        """
-        if self.debug_counter < 2: # TODO FLOAT NOT SUPPORT --> TO PIL
-            img = norm_batch[0]
-            pil_img = img.numpy().reshape(160,960,3)
-            transform = transforms.Compose([transforms.ToPILImage()])
-            print(pil_img.shape)
-            pil_img = transform(pil_img)
-            pil_img.show()
-        """
-
-
 
         #  NAVIGATION
         cmd_labels = torch.tensor(tick_data['next_command'])
