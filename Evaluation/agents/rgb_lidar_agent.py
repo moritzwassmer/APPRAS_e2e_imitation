@@ -35,7 +35,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
     """
 
     def setup(self, path_to_conf_file, route_index=None):
-
         """Sets the agent up and initialized most attributes
 
         Args:
@@ -76,7 +75,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
     def _get_position(self, tick_data):
 
-        """converts gps position to route planner position"""
+        """converts gps position to route planner position
+        Args:
+            tick_data: processed input_data
+        Returns:
+            gps position
+        """
 
         gps = tick_data['gps']
         gps = (gps - self._route_planner.mean) * self._route_planner.scale
@@ -144,6 +148,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         Args:
             input_data: Sensor data retrieved from carla
+        Returns:
+            A dict mapping sensors to the respective processed data
         """
 
         # IMAGE PROCESSING
@@ -205,13 +211,19 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
     @torch.inference_mode() # Faster version of torch_no_grad
     def run_step(self, input_data, timestamp):
+
         """Runs a decision making step of the agent.
 
         Also performs preprocessing steps necessary for being fed into the torch network like normalization, dimensionalitys etc.
 
         Args:
             input_data: Sensor data retrieved from carla
+            timestamp: current time
+
+        Returns:
+            A dict mapping sensors to the respective processed data
         """
+
         self.step += 1
 
         if not self.initialized:
@@ -302,7 +314,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         """Scales and crops image to same format as Transfuser trainingdata
 
         Args:
-            image: String path to config file
+            image: image to be scaled and cropped
             scale: index of route which is run from leaderboard
             start_x: pixel x from where to start cropping
             crop_x: how much to crop starting from x

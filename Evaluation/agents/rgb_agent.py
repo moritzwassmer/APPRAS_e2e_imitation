@@ -67,7 +67,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.initialized = True
 
     def _get_position(self, tick_data):
-        """converts gps position to route planner position"""
+        """converts gps position to route planner position
+        Args:
+            tick_data: processed input_data
+        Returns:
+            gps position
+        """
         gps = tick_data['gps']
         gps = (gps - self._route_planner.mean) * self._route_planner.scale
         return gps
@@ -126,6 +131,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         Args:
             input_data: Sensor data retrieved from carla
+        Returns:
+            A dict mapping sensors to the respective processed data
         """
 
         # IMAGE PROCESSING
@@ -177,6 +184,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         Args:
             input_data: Sensor data retrieved from carla
+            timestamp: current time
+
+        Returns:
+            A dict mapping sensors to the respective processed data
         """
 
         self.step += 1
@@ -230,7 +241,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         print(brake)
 
         ### INTERIA STEER MODULATION
-        if (tick_data['speed'] < 0.5):  # 0.1 is just an arbitrary low number to threshhold when the car is stopped
+        if (tick_data['speed'] < 0.5):
             self.stuck_detector += 1
         elif (tick_data['speed'] > 0.5 and is_stuck == False):
             self.stuck_detector = 0
