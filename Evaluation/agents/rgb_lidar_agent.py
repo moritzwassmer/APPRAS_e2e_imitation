@@ -23,28 +23,19 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.config_path = path_to_conf_file
         self.step = -1
         self.initialized = False
-
-
-
-        # setting machine to avoid loading files
         self.config = Lidar_Config
-
-
         self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
-
         self.lidar_pos = self.config.lidar_pos  # x, y, z coordinates of the LiDAR position.
 
-
+        # Load model architecture and weights
         from models.resnet_lidar.lidar_v1 import Resnet_Lidar_V1_Dropout
         net = Resnet_Lidar_V1_Dropout(0.25)
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_lidar", "weights")
         net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep17.pt")))
-
         self.net = net.cuda()
 
-        self.debug_counter = 0
-
+        # Inertia
         self.stuck_detector = 0
         self.forced_move = 0
 
