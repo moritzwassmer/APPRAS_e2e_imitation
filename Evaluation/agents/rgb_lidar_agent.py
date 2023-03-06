@@ -58,7 +58,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net = Resnet_Lidar_V1_Dropout(0.25)
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_lidar", "weights")
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep18.pt")))
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep17.pt")))
 
         self.net = net.cuda()
 
@@ -216,10 +216,11 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         is_stuck = False
         # divide by 2 because we process every second frame
         # 1100 = 55 seconds * 20 Frames per second, we move for 1.5 second = 30 frames to unblock
-        if(self.stuck_detector > self.config.stuck_threshold and self.forced_move < self.config.creep_duration):
+        if(self.stuck_detector > self.config.stuck_threshold and self.forced_move < self.config.creep_duration): # TODO
             print("Detected agent being stuck. Move for frame: ", self.forced_move)
             is_stuck = True
             self.forced_move += 1
+        print(self.stuck_detector)
 
         if self.forced_move == self.config.creep_duration:
             self.forced_move = 0

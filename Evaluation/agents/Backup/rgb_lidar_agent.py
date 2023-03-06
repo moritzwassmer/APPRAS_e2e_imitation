@@ -61,7 +61,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         net = Resnet_Lidar_V1_Dropout(0.25)
         root = os.path.join(os.getenv("GITLAB_ROOT"),
                             "models", "resnet_lidar", "weights")  # TODO Has to be defined
-        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep18.pt")))  # TODO Change to some model checkpoint
+        net.load_state_dict(torch.load(os.path.join(root, "resnet_lidar_v1_dropout_ep17.pt")))  # TODO Change to some model checkpoint
 
         self.net = net.cuda()
 
@@ -163,7 +163,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         gps = input_data['gps'][1][:2]
         speed = input_data['speed'][1]['speed']
 
-        print("speed"+str(speed))
+        #print("speed"+str(speed))
 
         compass = input_data['imu'][1][-1]
         if (np.isnan(compass) == True): # CARLA 0.9.10 occasionally sends NaN values in the compass
@@ -209,7 +209,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         lidar = input_data['lidar'][1]#[:, :3]
         result['lidar'] = lidar
 
-        print(np.shape(result["lidar"]))
+        #print(np.shape(result["lidar"]))
 
         #print(result.keys)
 
@@ -251,12 +251,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             self.forced_move = 0
             self.stuck_detector = 0
 
-        """
+
         print(self.step)
         print(self.stuck_detector)
         print(self.forced_move)
         print(is_stuck)
-        """
+
 
         ### PREPROCESSING
 
@@ -312,9 +312,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         lidar = torch.unsqueeze(lidar.to(device),0)
 
 
-        print(lidar.shape)
+        #print(lidar.shape)
         lidar = preprocessing["lidar_bev"](lidar)
-        print(lidar.shape)
+        #print(lidar.shape)
 
         #### FORWARD PASS,
         img_norm = img_norm.to(device)
@@ -347,7 +347,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             control.throttle = 0.63
             control.steer = float(steer)
             control.brake = 0
-            pass
+            #pass
         else:
             """
             control.throttle = float(throttle)
@@ -363,7 +363,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             else:
                 control.brake = float(0)
             control.steer = float(steer)
-        print("control ",control)
+        #print("control ",control)
         print("\n")
         self.control = control
 
