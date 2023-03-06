@@ -1,12 +1,15 @@
 import os
 from copy import deepcopy
-import cv2
-import carla
-from PIL import Image
-from collections import deque
-import torch
 import numpy as np
+from collections import deque
+
+import carla
 from leaderboard.autoagents import autonomous_agent
+
+from PIL import Image
+import cv2
+import torch
+
 from config import RGB_Config
 from data_pipeline.data_preprocessing import preprocessing
 
@@ -21,12 +24,10 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.step = -1
         self.initialized = False
         self.debug_counter = 0
-
-        # setting machine to avoid loading files
         self.config = RGB_Config
         self.gps_buffer = deque(maxlen=self.config.gps_buffer_max_len) # Stores the last x updated gps signals.
 
-        # LOAD MODEL FILE
+        # Load model architecture and weights
         from models.resnet_rgb.architectures_v3 import Resnet_Baseline_V3_Dropout
         net = Resnet_Baseline_V3_Dropout(0.25)
         root = os.path.join(os.getenv("GITLAB_ROOT"),
@@ -37,9 +38,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         # Inertia Problem variables
         self.stuck_detector = 0
         self.forced_move = 0
-
-
-
 
     def _init(self):
         self._route_planner = RoutePlanner(self.config.route_planner_min_distance, self.config.route_planner_max_distance)
@@ -158,7 +156,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
     @torch.inference_mode() # Faster version of torch_no_grad
     def run_step(self, input_data, timestamp):
         self.step += 1
-
 
         if not self.initialized:
             self._init()

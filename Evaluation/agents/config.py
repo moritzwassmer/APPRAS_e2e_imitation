@@ -1,7 +1,3 @@
-import os
-
-# TRANSFUSER CONFIGURATION OF SENSORS ETC
-
 class RGB_Config:
     scale = 1
     img_resolution = (160, 704)  # image pre-processing in H, W

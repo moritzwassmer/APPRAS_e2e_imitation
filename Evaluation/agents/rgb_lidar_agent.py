@@ -1,36 +1,17 @@
 import os
-import json
-import sys
 from copy import deepcopy
-
-import cv2
-import carla
-from PIL import Image
+import numpy as np
 from collections import deque
 
-import torch
-import numpy as np
-import math
-
+import carla
 from leaderboard.autoagents import autonomous_agent
-#from model import LidarCenterNet
+
+from PIL import Image
+import cv2
+import torch
+
 from config import Lidar_Config
-#rom data import lidar_to_histogram_features, draw_target_point, lidar_bev_cam_correspondences
-
-from shapely.geometry import Polygon
-
-import itertools
-
 from data_pipeline.data_preprocessing import preprocessing, transform_lidar_bev
-
-
-
-from agents.navigation.local_planner_behavior import RoadOption
-
-# OUR IMPORTS
-
-from torchvision import transforms
-
 
 def get_entry_point():
     return 'HybridAgent'
