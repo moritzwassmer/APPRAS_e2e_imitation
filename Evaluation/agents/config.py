@@ -56,4 +56,4 @@ class Lidar_Config:
 
     # Inertia Settings
     stuck_threshold = 2000 / action_repeat  # Number of frames after which the creep controller starts triggering. Inertia param old : 2000
-    creep_duration = 45 / action_repeat  # Number of frames we will creep forward # DIFFERENT FROM RGB, because it needs stronger push
+    creep_duration = 30 / action_repeat  # Number of frames we will creep forward # DIFFERENT FROM RGB, because it needs stronger push
