@@ -1,22 +1,16 @@
-![architecture](models/nvidia_model-achitecture.png)
+# Models
 
-NVIDIA model used
+## model_trainer.py
+Modularized Trainingspipeline for consistency
 
-Image normalization to avoid saturation and make gradients work better.
+## resnet_lidar
+provides Architectures and weights for the lidar model
 
-Convolution: 5x5, filter: 24, strides: 2x2, activation: ELU
+## resnet_rgb
+provides Architectures and weights for the rgb model. Also contains development notebooks for experimentation without messing around with the model_trainer which is meant to be a stable.
 
-Convolution: 5x5, filter: 36, strides: 2x2, activation: ELU
-
-Convolution: 5x5, filter: 48, strides: 2x2, activation: ELU
-
-Convolution: 3x3, filter: 64, strides: 1x1, activation: ELU
-
-Convolution: 3x3, filter: 64, strides: 1x1, activation: ELU
-
-Drop out (0.5)
-
-Fully connected: neurons: 100, activation: ELU
-Fully connected: neurons: 50, activation: ELU
-Fully connected: neurons: 10, activation: ELU
-Fully connected: neurons: 1 (output)
+### Architectures
+All architecture are inspired by the following Papers:
+- End-to-end Driving via Conditional Imitation Learning https://arxiv.org/abs/1710.02410
+- Exploring the Limitations of Behavior Cloning for Autonomous Driving Exploring the Limitations of Behavior Cloning for Autonomous Driving  https://arxiv.org/abs/1904.08980
+- Multimodal E2E AD https://arxiv.org/abs/1906.03199

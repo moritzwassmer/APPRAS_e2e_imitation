@@ -79,7 +79,7 @@ class Resnet_Lidar_V1(nn.Module):
         x = torch.cat((rgb, lidar, cmd, spd), 1)
         x = self.mlp(x)
         # x = self.net.fc(x)
-        return self.brk_head(x), self.str_head(x), self.thr_head(x)  # TODO 3 Change new order
+        return self.brk_head(x), self.str_head(x), self.thr_head(x)
         
 
 class Resnet_Lidar_V1_Dropout(nn.Module):
@@ -156,7 +156,7 @@ class Resnet_Lidar_V1_Dropout(nn.Module):
         x = self.mlp(x)
 
         # x = self.net.fc(x)
-        return self.brk_head(x), self.str_head(x), self.thr_head(x)  # TODO 3 Change new order
+        return self.brk_head(x), self.str_head(x), self.thr_head(x)
 
 
 
@@ -234,4 +234,4 @@ class Resnet_Lidar_V1_Dropout_2(nn.Module):
         x = self.mlp(x)
 
         # x = self.net.fc(x)
-        return self.brk_head(x), self.str_head(x), self.thr_head(x)  # TODO 3 Change new order
+        return self.brk_head(x), self.str_head(x), self.thr_head(x)
