@@ -7,7 +7,7 @@ Modularized Trainingspipeline for consistency
 provides Architectures and weights for the lidar model
 
 ## resnet_rgb
-provides Architectures and weights for the rgb model. Also contains development notebooks for experimentation without messing around with the model_trainer which is meant to be consistent.
+provides Architectures and weights for the rgb model. Also contains development notebooks for experimentation without messing around with the model_trainer which is meant to be a stable.
 
 ### Architectures
 All architecture are inspired by the following Papers:
