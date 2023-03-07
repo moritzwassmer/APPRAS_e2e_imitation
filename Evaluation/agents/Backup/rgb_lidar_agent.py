@@ -344,7 +344,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         control = carla.VehicleControl()
 
         if is_stuck: # TODO
-            control.throttle = 0.63
+            control.throttle = 0.5 # 0.63
             control.steer = float(steer)
             control.brake = 0
             #pass
