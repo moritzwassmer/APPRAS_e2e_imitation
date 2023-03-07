@@ -2,7 +2,35 @@ import torch.nn as nn
 import torchvision
 import torch
 
+def mlp(neurons_in, neurons_out, neurons_hidden):
+    """ Creates a MLP layer with Relu activation
+
+    Args:
+        neurons_in: dimensionality of Input data
+        neurons_out: dimensionality of Output layer
+        neurons_hidden: dimensionality of Hidden layer
+
+    Returns:
+        Sequential Module with linear layer with Relu activations
+    """
+    return (nn.Sequential(
+        nn.Linear(neurons_in, neurons_hidden),
+        nn.Tanh(),
+        nn.Linear(neurons_hidden, neurons_hidden),
+        nn.Tanh(),
+        nn.Linear(neurons_hidden, neurons_out),
+        nn.Tanh()
+    ))
+
 def steer_head(neurons_in):  # [-1,1] Range Output
+    """ Creates a linear output layer with tanh activation
+
+    Args:
+        neurons_in: dimensionality of Input data
+
+    Returns:
+        Sequential Module with linear layer with tanh activation
+    """
     str_head = nn.Sequential(
         nn.Linear(neurons_in, 1),
         nn.Tanh())
@@ -10,6 +38,14 @@ def steer_head(neurons_in):  # [-1,1] Range Output
 
 
 def throttle_head(neurons_in):  # [0,1] Range Output
+    """ Creates a linear output layer with sigmoid activation
+
+    Args:
+        neurons_in: dimensionality of Input data
+
+    Returns:
+        Sequential Module with linear layer with sigmoid activation
+    """
     thr_head = nn.Sequential(
         nn.Linear(neurons_in, 1),
         nn.Sigmoid())
@@ -17,18 +53,49 @@ def throttle_head(neurons_in):  # [0,1] Range Output
 
 
 def brake_head(neurons_in):  # [0,1] Range Output
+    """ Creates a linear output layer with sigmoid activation
+
+    Args:
+        neurons_in: dimensionality of Input data
+
+    Returns:
+        Sequential Module with linear layer with sigmoid activation
+    """
     brk_head = nn.Sequential(
         nn.Linear(neurons_in, 1),
         nn.Sigmoid())
     return brk_head
 
-def to_cuda_if_possible(data, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')): # TODO HAS TO BE LIKE THAT FOR INFERENCE
+def to_cuda_if_possible(data, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')): #
+    """ Moves data to cuda
+
+    It does assume all navigational commands in batch to be equally present in the dataset and sorted.
+    This Model did yield worse performances in our tests which is why we chose V3 for Evaluation
+
+    Args:
+        data: Torch Tensor
+        device: torch device (GPU, MPS, CPU)
+
+    Returns:
+        Cuda compatible torch tensor
+    """
     return data.to(device) if device else data
 
 class Resnet_Baseline_V4(nn.Module): # Initial Version. Is not able to handle a dataloader that uses shuffling. Needs to use CommandSampler
 
-    """
-    DOESNT Automatically select the corresponding branch according to the given command
+    """ Class implementing the branched Architecture of CIL paper https://arxiv.org/abs/1904.08980 without speed regularization
+
+    It does assume all navigational commands in batch to be equally present in the dataset and sorted.
+    This Model did yield worse performances in our tests which is why we chose V3 for Evaluation
+
+    Attributes:
+        net: vision backbone (ResNet)
+        spd_input: speed input layer
+        mlp: MLP Module
+        branches_mlp: ModuleList for MLP Modules for respective branch
+        branches_brake: ModuleList for brake Modules (OutputLayer) for respective branch
+        branches_steer: ModuleList for steel Modules (OutputLayer) for respective branch
+        branches_throttle: ModuleList for throttle Modules (OutputLayer) for respective branch
     """
 
     def __init__(self):
@@ -92,27 +159,24 @@ class Resnet_Baseline_V4(nn.Module): # Initial Version. Is not able to handle a 
 
         return brake, steer, throttle
 
-
-def mlp(neurons_in, neurons_out, neurons_hidden):
-    return (nn.Sequential(
-        nn.Linear(neurons_in, neurons_hidden),
-        nn.Sigmoid(),
-        nn.Linear(neurons_hidden, neurons_hidden),
-        nn.Sigmoid(),
-        nn.Linear(neurons_hidden, neurons_out),
-        nn.Sigmoid()
-    ))
-
-
-def to_cuda_if_possible(data, device):
-    return data.to(device) if device else data
-
-
 class Resnet_Baseline_V4_Shuffle(nn.Module): # Able to use any Dataloader.
 
+    """ Class implementing the branched Architecture of CIL paper https://arxiv.org/abs/1904.08980 without speed regularization
+
+    Automatically splits up the batch and sends samples according to their command value to the corresponding branch.
+    That enables use of shuffling of training data and therefore is not bound to a specific Sampling Strategy.
+    This Model did yield worse performances in our tests which is why we chose V3 for Evaluation
+
+    Attributes:
+        net: vision backbone (ResNet)
+        spd_input: speed input layer
+        mlp: MLP Module
+        branches_mlp: ModuleList for MLP Modules for respective branch
+        branches_brake: ModuleList for brake Modules (OutputLayer) for respective branch
+        branches_steer: ModuleList for steel Modules (OutputLayer) for respective branch
+        branches_throttle: ModuleList for throttle Modules (OutputLayer) for respective branch
     """
-    Automatically selects the corresponding branch according to the given command
-    """
+
 
     def __init__(self):
         super().__init__()
@@ -215,21 +279,24 @@ class Resnet_Baseline_V4_Shuffle(nn.Module): # Able to use any Dataloader.
 
 from torchvision.models import resnet18, ResNet18_Weights, resnet34, ResNet34_Weights
 
-class Long_Run_2(nn.Module):
+class Resnet_Baseline_V4_Shuffle_2(nn.Module): # Old Name: Long_Run_2
 
-    """
+    """ Class implementing the branched Architecture of CIL paper https://arxiv.org/abs/1904.08980 without speed regularization
+
+    Automatically splits up the batch and sends samples according to their command value to the corresponding branch.
+    That enables use of shuffling of training data and therefore is not bound to a specific Sampling Strategy.
+    This Model did yield worse performances in our tests which is why we chose V3 for Evaluation
     Replaced Hidden activations from tanh -> Relu
-    """
 
-    def mlp(self, neurons_in, neurons_out, neurons_hidden):
-        return (nn.Sequential(
-            nn.Linear(neurons_in, neurons_hidden),
-            nn.ReLU(),
-            nn.Linear(neurons_hidden, neurons_hidden),
-            nn.ReLU(),
-            nn.Linear(neurons_hidden, neurons_out),
-            nn.ReLU()
-        ))
+    Attributes:
+        net: vision backbone (ResNet)
+        spd_input: speed input layer
+        mlp: MLP Module
+        branches_mlp: ModuleList for MLP Modules for respective branch
+        branches_brake: ModuleList for brake Modules (OutputLayer) for respective branch
+        branches_steer: ModuleList for steel Modules (OutputLayer) for respective branch
+        branches_throttle: ModuleList for throttle Modules (OutputLayer) for respective branch
+    """
 
     def __init__(self):
         super().__init__()
@@ -326,3 +393,23 @@ class Long_Run_2(nn.Module):
         throttle = torch.unsqueeze(sorted_out[:, 3], 1)
 
         return brake, steer, throttle
+
+    def mlp(neurons_in, neurons_out, neurons_hidden):
+        """ Creates a MLP layer with Relu activation
+
+        Args:
+            neurons_in: dimensionality of Input data
+            neurons_out: dimensionality of Output layer
+            neurons_hidden: dimensionality of Hidden layer
+
+        Returns:
+            Sequential Module with linear layer with Relu activations
+        """
+        return (nn.Sequential(
+            nn.Linear(neurons_in, neurons_hidden),
+            nn.ReLU(),
+            nn.Linear(neurons_hidden, neurons_hidden),
+            nn.ReLU(),
+            nn.Linear(neurons_hidden, neurons_out),
+            nn.ReLU()
+        ))

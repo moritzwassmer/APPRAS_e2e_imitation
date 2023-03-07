@@ -25,9 +25,9 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         track: Sensors or Map track of Leaderboard
         config_path: path to config file
         step: Integer of current step of simulation
-        initialized: Boolean wether initialized or not
+        initialized: Boolean whether initialized or not
         config: config class describing sensor and carla settings
-        gps_buffer: Deque wich stores last GPS positions
+        gps_buffer: Deque which stores last GPS positions
         net: pytorch network
         stuck_detector: Counter for how long agent didn't move
         forced_move: Counter for how many steps the car moved when it was detected being stuck
