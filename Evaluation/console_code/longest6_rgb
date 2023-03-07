@@ -5,11 +5,14 @@ set DEBUG_CHALLENGE 1
 set TEAM_AGENT=%GITLAB_ROOT%\Evaluation\agents\rgb_agent.py
 set CHECKPOINT_ENDPOINT=%GITLAB_ROOT%\Evaluation\results\to_be_parsed\results.json
 set CHALLENGE_TRACK_CODENAME SENSORS
+set datagen=0
 
-python %LEADERBOARD_ROOT%\leaderboard\leaderboard_evaluator.py ^
+python %LEADERBOARD_ROOT%\leaderboard\leaderboard_evaluator_local.py ^
 --port 2000 ^
 --routes %ROUTES% ^
 --scenarios %SCENARIOS% ^
 --agent %TEAM_AGENT% ^
 --repetitions 1 ^
---checkpoint %CHECKPOINT_ENDPOINT%
+--checkpoint %CHECKPOINT_ENDPOINT% ^
+--debug 0 ^
+--resume 1
