@@ -54,7 +54,7 @@ class ModelTrainer:
         self.df_speed_stats = None
         if not os.path.exists("experiment_files"):
             os.makedirs("experiment_files")
-        self.dir_experiment_save = os.path.join("experiment_files", datetime.datetime.now().strftime("%Y_%m_%d_%H_%M"))
+        self.dir_experiment_save = os.path.join("experiment_files", datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         os.makedirs(os.path.join(self.dir_experiment_save, "model_state_dict"))
         os.makedirs(os.path.join(self.dir_experiment_save, "optimizer_state_dict"))
         os.makedirs(os.path.join(self.dir_experiment_save, "stats"))
@@ -83,40 +83,41 @@ class ModelTrainer:
             running_loss_list = [0] * len(self.dataloader_test.dataset.y)
 
             print(f'Epoch {epoch}\n')
-            
-            # Work through batches
-            for batch_idx, (X, Y_true, IDX) in enumerate(self.dataloader_train):
-                start_forward = time.time()
-                # In this step dicts are transformed to lists with same order
-                X, Y_true = self.preprocess_on_the_fly(X, Y_true)
-                # Move X, Y_true to device
-                X = [X_.to(self.device) for X_ in X]
-                Y_true = [Y_.to(self.device) for Y_ in Y_true]
-                # Y_pred will be on the device where also model and X are
-                Y_pred = self.model(*X)
-                # Individual losses are already weighted by loss_fn_weights
-                loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=self.do_weight_samples)
-                # Normalizing only necessary if loss_fn_weights don't sum to 1
-                loss = sum(loss_list) / sum(self.loss_fn_weights)
-                # Set gradients to None to not accumulate them over iteration (more efficient than optimizer.zero_grad())
-                for param in self.model.parameters():
-                    param.grad = None
-                times_forward.append(time.time() - start_forward)
-                # Backpropagation & Step
-                start_backward = time.time()
-                loss.backward()
-                self.optimizer.step()
-                running_loss_list = [running_loss + loss_.item() for running_loss, loss_ in zip(running_loss_list, loss_list)]
-            
-                if (batch_idx) % print_every == 0:
-                    print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
-                        .format(epoch, self.n_epochs, batch_idx, num_batches_train, loss.item()))
-                times_backward.append(time.time() - start_backward)
-            [train_loss_list[i].append(running_loss_list[i] / num_batches_train) for i in range(len(running_loss_list))]
+            self.TRAIN = False
+            if self.TRAIN:
+                # Work through batches
+                for batch_idx, (X, Y_true, IDX) in enumerate(self.dataloader_train):
+                    start_forward = time.time()
+                    # In this step dicts are transformed to lists with same order
+                    X, Y_true = self.preprocess_on_the_fly(X, Y_true)
+                    # Move X, Y_true to device
+                    X = [X_.to(self.device) for X_ in X]
+                    Y_true = [Y_.to(self.device) for Y_ in Y_true]
+                    # Y_pred will be on the device where also model and X are
+                    Y_pred = self.model(*X)
+                    # Individual losses are already weighted by loss_fn_weights
+                    loss_list = self.compute_loss(Y_true, Y_pred, IDX, do_weight_samples=self.do_weight_samples)
+                    # Normalizing only necessary if loss_fn_weights don't sum to 1
+                    loss = sum(loss_list) / sum(self.loss_fn_weights)
+                    # Set gradients to None to not accumulate them over iteration (more efficient than optimizer.zero_grad())
+                    for param in self.model.parameters():
+                        param.grad = None
+                    times_forward.append(time.time() - start_forward)
+                    # Backpropagation & Step
+                    start_backward = time.time()
+                    loss.backward()
+                    self.optimizer.step()
+                    running_loss_list = [running_loss + loss_.item() for running_loss, loss_ in zip(running_loss_list, loss_list)]
+                
+                    if (batch_idx) % print_every == 0:
+                        print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
+                            .format(epoch, self.n_epochs, batch_idx, num_batches_train, loss.item()))
+                    times_backward.append(time.time() - start_backward)
+                [train_loss_list[i].append(running_loss_list[i] / num_batches_train) for i in range(len(running_loss_list))]
 
-            # TODO: Prints the running loss
-            train_loss_list_np = np.array(train_loss_list)
-            print(f'\nTrain Loss Individual: {train_loss_list_np[:,-1].round(4)}  Train Loss Total: {(train_loss_list_np[:,-1].sum() / sum(self.loss_fn_weights)):.4f}')
+                # TODO: Prints the running loss
+                train_loss_list_np = np.array(train_loss_list)
+                print(f'\nTrain Loss Individual: {train_loss_list_np[:,-1].round(4)}  Train Loss Total: {(train_loss_list_np[:,-1].sum() / sum(self.loss_fn_weights)):.4f}')
             
             # Validate the network
             batch_loss_list = [0] * len(self.dataloader_test.dataset.y)
@@ -148,21 +149,21 @@ class ModelTrainer:
             # val_loss = np.mean(val_loss_list, axis=0)[-1]
             # if val_loss < val_loss_min:
             # val_loss_min = val_loss
-            path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
-            torch.save(self.optimizer.state_dict(), path_save_opt)
-            # TODO: To be moved in if block again
-            path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
-            self.model.cpu()
-            torch.save(self.model.state_dict(), path_save_model)
-            self.model.to(self.device)
+            if self.TRAIN:
+                path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
+                torch.save(self.optimizer.state_dict(), path_save_opt)
+                # TODO: To be moved in if block again
+                path_save_model = os.path.join(self.dir_experiment_save, "model_state_dict", f"{self.model.__class__.__name__}_ep{epoch}.pt".lower())
+                self.model.cpu()
+                torch.save(self.model.state_dict(), path_save_model)
+                self.model.to(self.device)
             
-
             # Save stats    
             self.df_performance_stats = self.get_performance_stats(train_loss_list, val_loss_list)
             self.df_performance_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_performance.csv"))
             self.df_speed_stats = self.get_speed_stats(times_epoch, times_forward, times_backward, times_val)
             self.df_speed_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_speed.csv"))
-            self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
+            # self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
             # Back to training
             self.model.train()
             times_epoch.append(time.time() - start_epoch)
@@ -257,7 +258,13 @@ class ModelTrainer:
 
 
     def get_performance_stats(self, train_loss_list, val_loss_list):
-        data = np.vstack((train_loss_list, val_loss_list)).T
+        if self.TRAIN:
+            data = np.vstack((train_loss_list, val_loss_list)).T
+        else:
+            train_loss_list = np.empty(np.array(val_loss_list).shape)
+            train_loss_list.fill(np.nan)
+            data = np.vstack((train_loss_list, val_loss_list)).T
+
         columns = ["train_" + e + "_loss" for e in self.dataloader_test.dataset.y] + \
                     ["val_" + e + "_loss" for e in self.dataloader_test.dataset.y]
         df_performance_stats = pd.DataFrame(data=data, columns=columns)
