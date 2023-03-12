@@ -3,51 +3,91 @@ import torch
 import numpy as np
 
 """
-The script only contains dictionaries that define for modalities (keys) how they need to be transformed (values).
-These dictionaries shall be used directly after a batch is loaded!
+This script defines preprocessing functions for for x and y variables.
+The single preprocessing functions are gathered in the preprocessing dictionairy at the bottom for use 
+during training and evaluation in the Leaderboard.
 """
 
+
 def prep_rgb(X_rgb):
-    # return T.Compose([
-    # T.Resize([88, 224]),
-    # T.Normalize(mean=[97.6954, 94.3324, 82.6693], std=[67.6040, 65.7858, 64.7942]),
-    # ])(X_rgb)
-    # X_rgb = T.Resize([88, 224])(X_rgb)
+    """Preprocesses the rgb input.
+    Args: 
+        X_rgb : torch.tensor of shape (batch_size, 3, 160, 960)
+            Unpreprocessed input
+    
+    Returns:
+        X_rgb : torch.tensor of shape (batch_size, 3, 160, 960)
+            Resized, scaled and z-normalized input
+    """
     # TODO: hacky use of AugMix by commenting in/out 
     # X_rgb = T.AugMix()(X_rgb.to(torch.uint8))
     X_rgb = T.Resize([88, 224])(X_rgb)
     X_rgb = X_rgb / 255
     X_rgb = T.Normalize(mean=[0.3849, 0.3718, 0.3261], std=[0.2632, 0.2562, 0.2523])(X_rgb)
-    # X_rgb = T.Normalize(mean=[0.3848, 0.3718, 0.3261], std=[0.2632, 0.2562, 0.2523])(X_rgb) # 80, 480
     return X_rgb
 
-def prep_rgb_old(X_rgb):
-    return T.Compose([
-    T.Resize([88, 224]),
-    T.Normalize(mean=[97.6954, 94.3324, 82.6693], std=[67.6040, 65.7858, 64.7942]),
-    ])(X_rgb)
 
 def prep_speed(X_spd):
+    """Preprocesses the speed input.
+    Args: 
+        X_speed : torch.tensor of shape (batch_size, 1)
+            Unpreprocessed input
+    
+    Returns:
+        X_speed : torch.tensor of shape (batch_size, 1)
+            Z-normalized input
+    """
     return ((X_spd - 2.382234)/ 1.724884)
     
+
 def prep_command(X_cmd):
+    """Preprocesses the command input.
+    Args: 
+        X_cmd : torch.tensor of shape (batch_size, 1)
+            Unpreprocessed input
+    
+    Returns:
+        X_cmd : torch.tensor of shape (batch_size, 7)
+            One hot encoded command
+    """
     X_cmd = torch.where(X_cmd == -1, torch.tensor(0, dtype=X_cmd.dtype), X_cmd).to(torch.int64) # Replace by -1 by 0
     X_cmd = torch.nn.functional.one_hot(X_cmd, num_classes=7)
     return torch.squeeze(X_cmd)
 
-def prep_lidar_bev(X_lidar_bev):
-    # Transformed to 641*641 i.e Resize is necessary
-    # X_lidar_bev = T.Resize([224, 224])(X_lidar_bev)
-    # X_lidar_bev = X_lidar_bev / 255
-    # X_lidar_bev = T.Normalize(mean=[0.0015, 0.0015, 0.0015], std=[0.0236, 0.0236, 0.0236])(X_lidar_bev)
 
-    # Transformed to 161*161 i.e Resize NOT necessary
+def prep_lidar_bev(X_lidar_bev):
+    """Preprocesses the lidar bev input.
+    Args: 
+        X_lidar_bev : torch.tensor of shape (batch_size, 1)
+            Unpreprocessed input
+    
+    Returns:
+        X_lidar_bev : torch.tensor of shape (batch_size, 7)
+            Scaled and z-normalized input
+    """
     X_lidar_bev = X_lidar_bev / 255
     X_lidar_bev = T.Normalize(mean=[0.0605, 0.0605, 0.0605], std=[0.1498, 0.1498, 0.1498])(X_lidar_bev)
     return X_lidar_bev
     
 
-def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-4,1),res = 0.2):
+def transform_lidar_bev(points, sr=(-16, 16), fr=(0, 32), hr=(-4, 1), res=0.2):
+    """Transforms the lidar raw material to a 2D BEV image.
+    Args: 
+        points : np.ndarray 2D of varying size
+            Unpreprocessed input
+        sr : tuple, optional
+            @Ege
+        fr : tuple, optional
+            @Ege 
+        hr : tuple, optional
+            @Ege
+        res : tuple, optional
+            @Ege
+    
+    Returns:
+        im : np.ndarray 2D; size depends on parameters; default (161, 161)
+            One hot encoded command
+    """
     side_range = sr    # left-most to right-most
     fwd_range =fr   # back-most to forward-most
 
@@ -111,7 +151,7 @@ def transform_lidar_bev(points, sr=(-16,16),fr=(0,32),hr=(-4,1),res = 0.2):
 
 preprocessing = {
     "rgb": prep_rgb,
-    "rgb_old": prep_rgb_old,
+    "rgb_old": prep_rgb,
     "speed": prep_speed,
     "command": prep_command,
     "lidar_bev": prep_lidar_bev

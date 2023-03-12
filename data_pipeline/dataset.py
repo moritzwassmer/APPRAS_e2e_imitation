@@ -1,32 +1,38 @@
-#%%
 from torch.utils.data import Dataset
-from torchvision import transforms
 import datetime
 import torch
-import pandas as pd
 import numpy as np
 import os
 import cv2
 import json
 
-"""
-Inspiration from:
-https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
-"""
-
 
 class CARLADataset(Dataset):
+    """
+    This class is used to build the training dataset and the test dataset for model training.
+    In contrast to CARLADataset, this class returns the three variables X, Y, and IDX
+    instead of only one variable containing the entire batch, when iterated over.
+    """
 
-    def __init__(self, root_dir, df_meta_data, config):
+    def __init__(self, df_meta_data, config):
         """
         Args:
-            root_dir (string): Directory with all the images.
-            used_inputs (list): Contains the folder names of the inputs that shall be used.
-            used_measurements (list): Contains the attributes of the measurements that shall be used.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
+            df_meta_data : pd.DataFrame
+                DataFrame that contains all information to build paths.
+            config : dict
+                Example: config_xy = {"used_inputs": ["rgb", "lidar_bev", "measurements"], 
+                            "used_measurements": ["speed", "steer", "throttle", "brake", "command"],
+                            "y": ["brake", "steer", "throttle"],
+                            "seq_len": 1
+                            }
+                "used_inputs" states the directory names of each route that shall be used.
+                "used_measurements" states the keys, i.e. the quantities from the measurements.json 
+                    files that shall be loaded.
+                "y" states what which quantities from "used_inputs" and "used_measurements" are considered
+                    output variables that shall be predicted by the model.
+                "seq_len" states the number of data points that should be fetched for one sample. > 1 only,
+                    useful for models involving time convolution etc.. Default should be 1! 
         """
-        self.root_dir = root_dir
         self.used_inputs = config["used_inputs"]
         self.used_measurements = config["used_measurements"]
         self.seq_len = config["seq_len"]
@@ -37,6 +43,11 @@ class CARLADataset(Dataset):
         return len(self.df_meta_data)
 
     def get_statistics(self):
+        """
+        Returns:
+            df_stats : pd.DataFrame
+                Data Frame containing stats about the CARLADatasetXY.
+        """
         df_meta_data = self.df_meta_data
         df_meta_data_full_paths = df_meta_data[df_meta_data.columns[1:]].apply(lambda x: df_meta_data["dir"] + os.sep + x.name + os.sep + x)
         df_meta_data_sizes = df_meta_data_full_paths.applymap(lambda path: os.path.getsize(path))
@@ -86,28 +97,31 @@ class CARLADataset(Dataset):
 
         return sample
             
-
     def get_file_path_from_df(self, input_idx, data_point_idx):
+        """ Builds the path that point to a data point.
+        Args:
+           input_idx : int
+                Column index of df_meta_data.
+           data_point_idx : int
+                Row index of df_meta_data.
+        Returns:
+            file_path : string
+                Path that points to a data point.
+        """
         route = self.df_meta_data.iloc[data_point_idx, 0]
         sensor, file_name = self.df_meta_data.columns[input_idx], self.df_meta_data.iloc[data_point_idx, input_idx]
         # file_path = os.path.join(self.root_dir, route, sensor, file_name)
         file_path = os.path.join(route, sensor, file_name)
         return file_path
 
-
-    def save_meta_data(self, path=None):
-        """
-        Args: 
-            path (string): Path where DataFrame containing meta data will be saved.
-        """
-        if not path:
-             path = os.path.join(self.root_dir, "meta_data.csv")
-        self.df_meta_data.to_csv(path, index=False)
-
-
     def load_data_from_path(self, path):
-        """
-        Loads the data that can be found in the given path.
+        """ Loads data from a given path that points to a file in the dataset.
+        Args: 
+            path : string
+                Path to a file.
+        Return:
+            data : np.ndarray
+                Whatever data the given path points to.
         """
         if not os.path.isfile(path):
             print(f"Path is not a file: {path}")
@@ -133,6 +147,11 @@ class CARLADataset(Dataset):
         return data
 
     def __get_data_shapes(self):
+        """ Return shapes of data that is used according to the config.
+        Return:
+            shapes : list
+                List of shapes.
+        """
         path_parts = self.df_meta_data.iloc[0].to_numpy()
         input_types = self.df_meta_data.columns.to_numpy()
         shapes = []
@@ -145,149 +164,3 @@ class CARLADataset(Dataset):
             else:
                 shapes.append(None)
         return shapes
-
-
-
-class CARLADatasetMultiProcessing(Dataset):
-
-    def __init__(self, root_dir, config):
-        """
-        Args:
-            root_dir (string): Directory with all the images.
-            used_inputs (list): Contains the folder names of the inputs that shall be used.
-            used_measurements (list): Contains the attributes of the measurements that shall be used.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
-        self.root_dir = root_dir
-        self.used_inputs = np.array(config["used_inputs"])# .astype(np.string_)
-        self.used_measurements = np.array(config["used_measurements"])# .astype(np.string_)
-        self.seq_len = config["seq_len"]
-        self.df_meta_data = self.__create_metadata_df(root_dir, self.used_inputs)
-        self.data_shapes = self.__get_data_shapes()
-
-    def __len__(self):
-        return len(self.df_meta_data)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-        idx_lagged = idx - (self.seq_len - 1)
-        sample = dict()
-        sample["idx"] = torch.arange(idx_lagged, idx + 1)
-
-        for input_idx in range(1, self.df_meta_data.shape[1]):
-            if list(self.df_meta_data.columns)[input_idx] == "measurements":
-                continue
-            shape = [dim for dim in self.data_shapes[input_idx - 1] if dim != 0]
-            data = np.zeros(shape)
-            idx_array = 0
-            for data_point_idx in range(idx_lagged, idx + 1):
-                file_path = self.get_file_path_from_df(input_idx, data_point_idx)
-                data_t = self.load_data_from_path(file_path)
-                data[idx_array] = data_t
-                idx_array += 1
-            sensor = self.df_meta_data.columns[input_idx]
-            sample[sensor] = data
-        if "measurements" in self.used_inputs:
-            input_idx = list(self.df_meta_data.columns).index("measurements")
-            shape = [dim for dim in self.data_shapes[input_idx - 1] if dim != 0]
-            data = np.zeros(shape)
-            idx_array = 0
-            for data_point_idx in range(idx_lagged, idx + 1):
-                file_path = self.get_file_path_from_df(input_idx, data_point_idx)
-                data_t = self.load_data_from_path(file_path)
-                for meas_idx, meas in enumerate(self.used_measurements):
-                    data[meas_idx, idx_array] = data_t[meas]
-                idx_array += 1
-            for meas_idx, meas in enumerate(self.used_measurements):
-                sample[meas] = data[meas_idx]
-
-        return sample
-
-
-    def __create_metadata_df(self, root_dir, used_inputs):
-        """
-        Creates the metadata (i.e. filenames) based on the the data root directory.
-        This root directory is supposed to contain folders for individual routes and those folder
-        contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
-        This function assumes that for all routes the same measurements/sensors types were recorded!
-
-        Comment: Function could probably be cleaner using os.path.walk()...
-        """
-        dirs = os.listdir(root_dir)
-        route_folders = [dir for dir in dirs if not os.path.isfile(os.path.join(root_dir, dir))]
-        sensor_folders = [dir for dir in os.listdir(os.path.join(root_dir, route_folders[0])) if dir in used_inputs]
-        columns = ["route"] + sensor_folders
-        df_meta = pd.DataFrame(columns=columns)
-        for route_folder in route_folders:
-            meta_data_route = []
-            for sensor_folder in sensor_folders:
-                meta_data_route.append(sorted(os.listdir(os.path.join(root_dir, route_folder, sensor_folder))))
-            meta_data_route.insert(0, [route_folder]*len(meta_data_route[0]))
-            num_entries = np.array([len(sublist) for sublist in meta_data_route])
-            if not np.all(num_entries == num_entries[0]):
-                print(f"{route_folder} has varying number of data files among input folders. It got discarded from the dataset.")
-                continue
-            df_meta = pd.concat([df_meta, pd.DataFrame(columns=columns, data=np.transpose(meta_data_route))], ignore_index=True)        
-        return df_meta
-    
-
-
-    def __get_file_path_from_df(self, input_idx, data_point_idx):
-        route = self.df_meta_data.iloc[data_point_idx, 0]
-        sensor, file_name = self.df_meta_data.columns[input_idx], self.df_meta_data.iloc[data_point_idx, input_idx]
-        file_path = os.path.join(self.root_dir, route, sensor, file_name)
-        return file_path
-
-
-    def save_meta_data(self, path=None):
-        """
-        Args: 
-            path (string): Path where DataFrame containing meta data will be saved.
-        """
-        if not path:
-             path = os.path.join(self.root_dir, "meta_data.csv")
-        self.df_meta_data.to_csv(path, index=False)
-
-
-    def load_data_from_path(self, path):
-        """
-        Loads the data that can be found in the given path.
-        """
-        file_format = os.path.splitext(path)[1]
-        data = None
-        if file_format in [".png", ".jpg"]:
-            data = cv2.imread(path)
-            # reshape to #channels; height; width
-            data = data.reshape([3] + list(data.shape)[:-1])
-        elif file_format == ".json":
-            with open(path, 'r') as f:
-                data = json.load(f)
-        elif file_format == ".npy":
-            data = np.load(path, allow_pickle=True)
-            # discard the weird single number for lidar
-            data = data[1]
-
-        return data
-
-    def __get_data_shapes(self):
-        path_parts = self.df_meta_data.iloc[0].to_numpy()
-        input_types = self.df_meta_data.columns.to_numpy()
-        shapes = []
-        for i in range(1, len(path_parts)):
-            path = os.path.join(self.root_dir, path_parts[0], input_types[i], path_parts[i])
-            data = self.load_data_from_path(path)
-            if isinstance(data, np.ndarray):
-                shapes.append([self.seq_len] + list(data.shape))
-            # This is then the "measurement" dict
-            else:
-                shapes.append([len(self.used_measurements), self.seq_len])
-        max_dim = max([len(shape) for shape in shapes])
-        for idx, shape in enumerate(shapes):
-            shapes[idx] = [0]*(max_dim - len(shape)) + shape
-        return np.array(shapes).astype(np.int_)
-    
-
-
-# %%

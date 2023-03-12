@@ -4,78 +4,81 @@ from sklearn.utils.class_weight import compute_sample_weight
 import os
 import json 
 from tqdm import tqdm
-import cv2
 
 
 def create_metadata_df(root_dir, used_inputs):
-        """
-        Creates the metadata (i.e. filenames) based on the the data root directory.
-        This root directory is supposed to contain folders for individual routes and those folder
-        contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
-        This function assumes that for all routes the same measurements/sensors types were recorded!
-        """
-        df_temp_list = []
-        df_temp = pd.DataFrame()
-        for (root, dirs, files) in os.walk(root_dir, topdown=True):
-            # Current folder contains the files
-            if not dirs:
-                files = [file for file in files if not file.startswith(".")]
-                input_type = root.split(os.sep)[-1]
-                # New route/szenario
-                if df_temp.columns.__contains__(input_type):
-                    df_temp_list.append(df_temp)
-                    df_temp = pd.DataFrame()
-                    df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    df_temp[input_type] = sorted(files)
-                # Append input type to existing route/szenario
-                else:
-                    if df_temp.empty:
-                        df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
-                    if len(files) == len(df_temp):
-                        df_temp[input_type] = sorted(files)
-                    else:
-                        print(f"Varying number files among input types: {root}")
-        df_temp_list.append(df_temp)
-        df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
-        return df[["dir"] + used_inputs]
+    """Creates the metadata (i.e. filenames) based on the the data root directory.
+    This root directory is supposed to contain folders for individual routes and those folder
+    contain folders with the respective sensor types (i.e. lidar) which contain the actual data files.
+    This function assumes that for all routes the same measurements/sensors types were recorded!
 
-def adjust_df_meta_for_unique_command_batches(df_meta_data, batch_size):
-    """
-    Use this function if an model architecture is used where the prediction
-    head depend on the specific command type.
-    Returns the given df_meta_data in an adjusted version for the use in combination
-    with DataLoader where shuffle=False.
-    """
-    # Add command as column to df_meta_data
-    df_meta_data = df_meta_data.copy()
-    print("Read all measurements from disk.")
-    df_measurements = measurements_to_df(df_meta_data)
-    print("All measurements in RAM! Now rebuild batches!")
-    df_meta_data["command"] = df_measurements["command"]
-    # Discard samples such that num_sample_per_command modulo batch_size = 0
-    nums_to_discard = (df_meta_data.sort_values("command").value_counts("command") % batch_size).sort_index().values
-    commands = np.sort(df_meta_data["command"].unique())
-    for cmd_idx, cmd in enumerate(commands):
-        idxs_discard = (df_meta_data
-                        .query("command == @cmd")
-                        .sample(nums_to_discard[cmd_idx])
-                        .index)
-        df_meta_data = df_meta_data.drop(index=idxs_discard)
-    # Randomly sample batches of batch_size with same command until all samples are used
-    batches_list = []
-    num_batches = int(len(df_meta_data) / batch_size)
-    # while not df_meta_data.empty:
-    for _ in tqdm(range(num_batches)):
-        # Next cmd to build batch with
-        cmd = df_meta_data.sample()["command"].item()
-        df_batch = df_meta_data.query("command == @cmd").sample(batch_size).copy()
-        df_meta_data = df_meta_data.drop(index=df_batch.index).reset_index(drop=True)
-        batches_list.append(df_batch)
+    Args:
+        root_dir : string
+            The path to a data directory with the structure defined by the TransFuser dataset.
+        used_inputs : list
+            List containing the directories used per scenario e.g. ["rgb", "measurements"]
     
-    return pd.concat(batches_list, ignore_index=True).drop(columns=["command"])
+    Returns:
+        df : pd.DataFrame
+            DataFrame that contains all information to build paths to all files stated in used_inputs.
+    """
+    df_temp_list = []
+    df_temp = pd.DataFrame()
+    for (root, dirs, files) in os.walk(root_dir, topdown=True):
+        # Current folder contains the files
+        if not dirs:
+            files = [file for file in files if not file.startswith(".")]
+            input_type = root.split(os.sep)[-1]
+            # New route/szenario
+            if df_temp.columns.__contains__(input_type):
+                df_temp_list.append(df_temp)
+                df_temp = pd.DataFrame()
+                df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
+                df_temp[input_type] = sorted(files)
+            # Append input type to existing route/szenario
+            else:
+                if df_temp.empty:
+                    df_temp["dir"] = [os.path.join(*root.split(os.sep)[:-1])] * len(files)
+                if len(files) == len(df_temp):
+                    df_temp[input_type] = sorted(files)
+                else:
+                    print(f"Varying number files among input types: {root}")
+    df_temp_list.append(df_temp)
+    df = pd.concat(df_temp_list, axis=0, ignore_index=True)        
+    return df[["dir"] + used_inputs]
+
 
 
 def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None, df_meta_data_noisy=None):
+    """ Performs train-test-split on the df_meta_data frame.
+    Args:
+        df_meta_data : pd.DataFrame
+            DataFrame that contains all information to build paths.
+        towns_intersect : dict, optional
+            Dictionary of the form e.g. {"train" : ["Town04", "Town05"], "test" : ["Town06"]}. (default=None)
+            If not None, test set 1 will contain some routes of towns stated in "train" and test set 2 will
+            contain all towns as usual stated in "test".
+        towns_no_intersect : dict, optional
+            Dictionary of the form e.g. {"train" : ["Town04", "Town05"], "test" : ["Town06"]}. (default=None)
+            Creates training set and test set according to this dict.
+        df_meta_data_noisy : pd.DataFrame, optional
+            DataFrame that contains all information to build paths for noisy data. (default=None)
+     Returns:
+        In case towns_intersect is not None,
+        df_train : pd.DataFrame
+            DataFrame that contains all information to build paths for training set.
+        df_test_1 : pd.DataFrame
+            DataFrame that contains all information to build paths for test set 1.
+        df_test_2 : pd.DataFrame
+            DataFrame that contains all information to build paths for test set 2.
+        
+        In case towns_no_intersect is not None,
+        if towns_no_intersect:
+        df_train : pd.DataFrame
+            DataFrame that contains all information to build paths for training set.
+        df_test : pd.DataFrame
+            DataFrame that contains all information to build paths for test set.
+    """
     
     if towns_intersect:
         train_towns = towns_intersect["train"]
@@ -129,8 +132,17 @@ def train_test_split(df_meta_data, towns_intersect=None, towns_no_intersect=None
 
 
 def measurements_to_df(df_meta_data):
+    """ Reads the following quantities from the .json paths saved in df_meta_data and puts them into a DataFrame:
+        speed, steer, throttle, brake, command, theta, x, y, x_command, y_command, waypoints. This function may be
+        used to compute sample weights.
+    Args:
+        df_meta_data : pd.DataFrame
+            DataFrame that contains all information to build paths.
+     Returns:
+        df_measurements : pd.DataFrame
+            DataFrame that contains all quantities listed in description above.
+    """
     idxs, paths, speed, steer, throttle, brake, command, theta, x, y, x_command, y_command, waypoints = [], [], [], [], [], [], [], [], [], [], [], [], []
-    # df_meta_data = dataset.df_meta_data
     for idx in tqdm(df_meta_data.index.values):
         path = os.path.join(df_meta_data["dir"][idx], "measurements", df_meta_data["measurements"][idx])
         with open(path, 'r') as f:
@@ -152,31 +164,23 @@ def measurements_to_df(df_meta_data):
                     "steer": steer, "throttle": throttle, "brake": brake,
                     "theta": theta, "x": x, "y": y, "x_command": x_command, "y_command": y_command,
                     "waypoints": waypoints}, index=list(range(len(speed))))
-    # df_measurements.to_pickle("measurements_.pickle")
     return df_measurements
 
 
-def render_example_video_from_folder_name(df_meta_data, folder="int_u_dataset_23_11", path_out="int_u_dataset_23_11.mp4"):
-    route_rand = df_meta_data[df_meta_data["dir"].str.contains(folder)].sample(1)["dir"].iloc[0]
-    df_meta_data_filt = df_meta_data[df_meta_data["dir"] == route_rand]
-
-    frame_size = (960, 160)
-    # fourcc = cv2.VideoWriter_fourcc(*'AVC1')
-    fourcc = cv2.VideoWriter_fourcc(*'H264')
-
-    out = cv2.VideoWriter(path_out, fourcc, 2, frame_size)
-
-    for idx in df_meta_data_filt.index.values:
-        path_load = os.path.join(df_meta_data_filt["dir"][idx], "rgb", df_meta_data_filt["rgb"][idx])
-        img = cv2.imread(path_load)
-        out.write(img)
-
-    out.release()
-    cv2.destroyAllWindows()
-
-
-def get_sample_weights_of_dataset(dataset, num_bins=5, multilabel_option=False):
-    """
+def get_sample_weights_of_dataset(dataset, num_bins=10, multilabel_option=False):
+    """ Calculates sample weights for a CARLDADatasetXY instance. 
+    Args:
+        dataset : CARLDADatasetXY
+            CARLDADatasetXY instance for which the sample weights should be calculated.
+        num_bins : int, optional
+            Number of bins is equal to number of equally wide classes in which the continuous
+            y variables such as steer should be classified in.
+        multilabel_option : bool, optional
+            If set to True, individual sample weights of all y variables used in the given 
+            dataset instance will be reduced to one weights list. 
+     Returns:
+        sample_weights : dict
+            Contains the sample weights for all y variables used in the given dataset instance.
     """
     num_bins_usually = num_bins
     df_measurements = measurements_to_df(dataset.df_meta_data)
