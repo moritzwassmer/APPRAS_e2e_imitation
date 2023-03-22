@@ -27,8 +27,40 @@ TODO:
 """
 
 class ModelTrainer:
+    """
+    This class implements the PyTorch training loop and can thus be used to train a model with the 
+    additional features of saving models in dedicated experiment folders including performance statistics.
+    """
+
 
     def __init__(self, model, optimizer, loss_fns, loss_fn_weights, n_epochs, dataloader_train, dataloader_test, sample_weights, preprocessing, upload_tensorboard):
+        """
+        Args:
+            model : pd.DataFrame
+                DataFrame that contains all information to build paths.
+            optimizer : torch.optim
+                PyTorch Optimizer that is used during training.
+            loss_fns : dict
+                Values are names of target values to predict (exactly as named when returned by the DataLoader)
+                in alphabetical order. Keys are the respective loss functions of type torch.nn.modules.loss. 
+            loss_fn_weights : dict
+                Values are names of target values to predict (exactly as named when returned by the DataLoader)
+                in alphabetical order. Keys are the respective lost weights (floats). 
+            n_epochs : int
+                Number of epochs to train the model.
+            dataloader_train : torch.DataLoader
+                DataLoader containing the training data.
+            dataloader_test : torch.DataLoader
+                DataLoader containing the test data.
+            sample_weights : dict
+                DataLoader containing the test data.
+            preprocessing : dict
+                Preprocessing dictionary defined in data_pipeline.data_preprocessing
+            upload_tensorboard : bool
+                If True, results will be uploaded to the tensorboard.
+        """
+
+        
         self.model = model
         self.optimizer = optimizer
         self.loss_fns = loss_fns
@@ -83,7 +115,7 @@ class ModelTrainer:
             running_loss_list = [0] * len(self.dataloader_test.dataset.y)
 
             print(f'Epoch {epoch}\n')
-            self.TRAIN = False
+            self.TRAIN = True
             if self.TRAIN:
                 # Work through batches
                 for batch_idx, (X, Y_true, IDX) in enumerate(self.dataloader_train):
@@ -110,7 +142,7 @@ class ModelTrainer:
                     running_loss_list = [running_loss + loss_.item() for running_loss, loss_ in zip(running_loss_list, loss_list)]
                 
                     if (batch_idx) % print_every == 0:
-                        print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
+                        print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
                             .format(epoch, self.n_epochs, batch_idx, num_batches_train, loss.item()))
                     times_backward.append(time.time() - start_backward)
                 [train_loss_list[i].append(running_loss_list[i] / num_batches_train) for i in range(len(running_loss_list))]
