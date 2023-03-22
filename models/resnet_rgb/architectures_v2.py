@@ -2,16 +2,29 @@ import torch
 import torch.nn as nn
 import torchvision
 
-"""
-Input: rgb, speed, navigational command.
-Output: break, steer, throttle.
-Seq len: 1
-Fusion: late fusion (concatenating).
-Comment: one dense layers after concatenation. 
-"""
+
 
 class Resnet_Baseline_V2(nn.Module):
     
+    """ 
+    Class implementing the ResNet18 architecture with added input
+    layers and regression heads. This time the concatenated output 
+    of (rgb, command, speed) is passed through an MLP in the forward pass.
+
+    This model serves as a first retuning
+    of the "architectures_v1" for our experiment.
+
+    Attributes:
+        net: vision backbone (ResNet)
+        cmd_input: command input layer - one hot encoded vector with 7 different navigational commands
+        spd_input: speed input layer
+        mlp: MLP Module
+        thr_head: Regression Heads for Throttle
+        brk_head: Regression Heads for Brake
+        str_head: Regression Heads for Steering
+    """
+
+
     def __init__(self):
         super().__init__()
         # ResNet Architecture with pretrained weights, also bigger resnets available
@@ -21,7 +34,7 @@ class Resnet_Baseline_V2(nn.Module):
         # Top layer of ResNet which you can modify. We choose Identity to use it as Input for all the heads
         self.net.fc = nn.Identity()
         
-        # Input Layer fuer cmd, spd
+        # Input Layer for cmd, spd
         self.cmd_input = nn.Sequential(
             nn.Linear(7, 7),
             nn.Tanh() #nn.LeakyReLU() # TODO
@@ -67,6 +80,4 @@ class Resnet_Baseline_V2(nn.Module):
         x = torch.cat((rgb, cmd, spd),1)
         x = self.mlp(x)
         
-        #x = self.net.fc(x)
-        # return self.thr_head(x), self.str_head(x), self.brk_head(x) # 3 Outputs since we have 3 Heads 
         return self.brk_head(x), self.str_head(x), self.thr_head(x) # Sorting!
