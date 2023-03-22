@@ -4,6 +4,7 @@ from sklearn.utils.class_weight import compute_sample_weight
 import os
 import json 
 from tqdm import tqdm
+import cv2
 
 
 def create_metadata_df(root_dir, used_inputs):
@@ -211,3 +212,34 @@ def get_sample_weights_of_dataset(dataset, num_bins=10, multilabel_option=False)
         sample_weights_clipped[np.argwhere(sample_weights_clipped > boundary_to_edge_cases).flatten()] = boundary_to_edge_cases
         sample_weights = {"multilabel": sample_weights_clipped}
     return sample_weights
+
+def render_example_video_from_folder_name(df_meta_data, folder="int_u_dataset_23_11", path_out="int_u_dataset_23_11.mp4"):
+    route_rand = df_meta_data[df_meta_data["dir"].str.contains(folder)].sample(1)["dir"].iloc[0]
+    df_meta_data_filt = df_meta_data[df_meta_data["dir"] == route_rand]
+
+    frame_size = (960, 160)
+    fourcc = cv2.VideoWriter_fourcc(*'H264')
+
+    out = cv2.VideoWriter(path_out, fourcc, 2, frame_size)
+
+    for idx in df_meta_data_filt.index.values:
+        path_load = os.path.join(df_meta_data_filt["dir"][idx], "rgb", df_meta_data_filt["rgb"][idx])
+        img = cv2.imread(path_load)
+        out.write(img)
+
+    out.release()
+    cv2.destroyAllWindows()
+
+
+def render_example_video_from_folder_name_2(path_to_route, path_out):
+    file_paths = sorted(os.listdir(path_out))
+    
+    frame_size = (960, 160)
+    fourcc = cv2.VideoWriter_fourcc(*'H264')
+    out = cv2.VideoWriter(path_out, fourcc, 2, frame_size)
+    for path in file_paths:
+        img = cv2.imread(path)
+        out.write(img)
+
+    out.release()
+    cv2.destroyAllWindows()
