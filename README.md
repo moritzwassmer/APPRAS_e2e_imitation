@@ -65,10 +65,6 @@ Contains the performance measures of the autonomous agents for every tested trac
 
 Visualizes and analyzes the evaluation data regarding overall performance of the autonomous agents. From that we are going to extract our results for the experiments i.e. comparing the driving performance between the different sensor setups.
 
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
 ## Usage
 
 ### Scenario 1: Model Training
