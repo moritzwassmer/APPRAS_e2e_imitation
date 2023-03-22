@@ -80,7 +80,7 @@ Within a particular ecosystem, there may be a common way of installing things, s
 7. Observe your model and performance statistics in the models/notebooks/experiment_files folder in the subfolder with the most recent timestamp.
 
 ### Scenario 2: Model Evaluation in the Leaderboard
-TODO @Moritz
+TODO -->Moritz
 
 ## Authors and acknowledgment
 Team Members:  Jakob Wiren, Julian Klitzing,  Moritz Wassmer, Ege Atesalp, Can Kayser.
