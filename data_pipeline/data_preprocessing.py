@@ -76,13 +76,13 @@ def transform_lidar_bev(points, sr=(-16, 16), fr=(0, 32), hr=(-4, 1), res=0.2):
         points : np.ndarray 2D of varying size
             Unpreprocessed input
         sr : tuple, optional
-            @Ege
+            Side Ranges of the box
         fr : tuple, optional
-            @Ege 
+            Forward(and Backwards) Ranges of the box
         hr : tuple, optional
-            @Ege
+            Height Ranges of the box
         res : tuple, optional
-            @Ege
+            Resolution
     
     Returns:
         im : np.ndarray 2D; size depends on parameters; default (161, 161)
