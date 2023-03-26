@@ -1,3 +1,5 @@
+
+
 export CARLA_ROOT=${1:-/home/kchitta/Documents/CARLA_0.9.10.1}
 export WORK_DIR=${2:-/home/kchitta/Documents/transfuser}
 
