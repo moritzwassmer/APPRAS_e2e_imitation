@@ -2,7 +2,7 @@
 
 ## Installation
 
-carla 0.9.10.1 and Windows environment expected
+Carla 0.9.10.1 and Windows environment expected
 
 1) install `requirements.txt` on a python 3.7.15 environment
 2) install shapely wheel in folder or download it from the following website
