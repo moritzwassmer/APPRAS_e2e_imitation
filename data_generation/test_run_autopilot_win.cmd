@@ -1,4 +1,4 @@
-set WORK_DIR=%GITLAB_ROOT%\MyTransfuser\transfuser
+set WORK_DIR=%GITLAB_ROOT%\transfuser_repo\transfuser
 
 set SCENARIOS=%WORK_DIR%\leaderboard\data\training\scenarios\Scenario10\Town10HD_Scenario10.json
 set ROUTES=%WORK_DIR%\leaderboard\data\training\routes\Scenario10\Town10HD_Scenario10.xml
