@@ -1,2 +1,2 @@
 This Folder contains the Transfuser repository which we were heavily inspired to build our agents.
-This module was also used for generating noise injected data.
+This module was also used for generating noise injected data. we also use the leaderboard and scenario_runner from their repository to ensure compatibility with their code.
