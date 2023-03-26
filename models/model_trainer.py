@@ -5,26 +5,8 @@ import os
 import time
 import datetime
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
 
 
-"""
-Current Limitation:
-- can only handle seq_len = 1
-- cannot handle waypoints as output so far (not even the DataLoader is capable of that currently)
-- weights the individual loss terms equally with the same loss function for all predicted values
-
-Apart from that it can be used for arbitrary defined models as long as...
-- models forward function takes it's parameters in the order as the DataLoader outputs them (see x_batch)
-- models return values of forward function are sorted as the DataLoader outputs them (see y_batch)
-
-
-TODO:
-- Write further useful information as comment to tensorboard (Train/Test Towns and their data sizes)
-- exchange python lists by numpy array for loss storage
-- write another version in which loss values are only written asynchronously (check speed-up)?
-"""
 
 class ModelTrainer:
     """
@@ -33,7 +15,7 @@ class ModelTrainer:
     """
 
 
-    def __init__(self, model, optimizer, loss_fns, loss_fn_weights, n_epochs, dataloader_train, dataloader_test, sample_weights, preprocessing, upload_tensorboard):
+    def __init__(self, model, optimizer, loss_fns, loss_fn_weights, n_epochs, dataloader_train, dataloader_test, sample_weights, preprocessing):
         """
         Args:
             model : pd.DataFrame
@@ -41,11 +23,11 @@ class ModelTrainer:
             optimizer : torch.optim
                 PyTorch Optimizer that is used during training.
             loss_fns : dict
-                Values are names of target values to predict (exactly as named when returned by the DataLoader)
-                in alphabetical order. Keys are the respective loss functions of type torch.nn.modules.loss. 
+                Keys are names of target values to predict (exactly as named when returned by the DataLoader)
+                in alphabetical order. Values are the respective loss functions of type torch.nn.modules.loss. 
             loss_fn_weights : dict
-                Values are names of target values to predict (exactly as named when returned by the DataLoader)
-                in alphabetical order. Keys are the respective lost weights (floats). 
+                Keys are names of target values to predict (exactly as named when returned by the DataLoader)
+                in alphabetical order. Values are the respective lost weights (floats). 
             n_epochs : int
                 Number of epochs to train the model.
             dataloader_train : torch.DataLoader
@@ -55,12 +37,9 @@ class ModelTrainer:
             sample_weights : dict
                 DataLoader containing the test data.
             preprocessing : dict
-                Preprocessing dictionary defined in data_pipeline.data_preprocessing
-            upload_tensorboard : bool
-                If True, results will be uploaded to the tensorboard.
+                Preprocessing dictionary defined in data_pipeline.data_preprocessing.
         """
 
-        
         self.model = model
         self.optimizer = optimizer
         self.loss_fns = loss_fns
@@ -71,7 +50,6 @@ class ModelTrainer:
         # Sample weights dict contains weights alphabetically to y variables
         self.sample_weights = sample_weights
         self.loss_fn_weights = loss_fn_weights
-        self.upload_tensorboard = upload_tensorboard
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'mps' if torch.has_mps else 'cpu')
         #self.device = torch.device("cpu")
         self.model.to(self.device)
@@ -94,22 +72,15 @@ class ModelTrainer:
 
 
     def run(self):
-        """
-        Sort the model forward parameters as sorted in the DataLoader for the respective data (x_batch).
-        Return the model predictions in the order of the DataLoader for the respective data (y_batch).
-        - y quantities are sorted alphabetically in the y_batch.
-        Losses are then also sorted as in DatLoader (alphabetically)
-        """
+        """Executes the training as configured in the constructor."""
         times_epoch, times_forward, times_backward, times_val = [], [], [], []
         print_every = 200
         num_batches_train = len(self.dataloader_train)
 
-        val_loss_min = np.Inf
 
         train_loss_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
         val_loss_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
 
-        writer = SummaryWriter()
         for epoch in range(1, self.n_epochs+1): 
             start_epoch = time.time()           
             running_loss_list = [0] * len(self.dataloader_test.dataset.y)
@@ -177,10 +148,7 @@ class ModelTrainer:
                 print(f'Val Loss Individual: {val_loss_list_np[:,-1].round(4)}  Val Loss Total: {(val_loss_list_np[:,-1].sum() / sum(self.loss_fn_weights)):.4f}\n')
                 times_val.append(time.time() - start_val)
 
-            # Save network if lower validation loss is achieved
-            # val_loss = np.mean(val_loss_list, axis=0)[-1]
-            # if val_loss < val_loss_min:
-            # val_loss_min = val_loss
+
             if self.TRAIN:
                 path_save_opt = os.path.join(self.dir_experiment_save, "optimizer_state_dict", f"opt_{self.model.__class__.__name__}.pt".lower())
                 torch.save(self.optimizer.state_dict(), path_save_opt)
@@ -195,21 +163,25 @@ class ModelTrainer:
             self.df_performance_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_performance.csv"))
             self.df_speed_stats = self.get_speed_stats(times_epoch, times_forward, times_backward, times_val)
             self.df_speed_stats.to_csv(os.path.join(self.dir_experiment_save, "stats", "stats_speed.csv"))
-            # self.write_to_tensorboard(writer, train_loss_list, val_loss_list, epoch)
             # Back to training
             self.model.train()
             times_epoch.append(time.time() - start_epoch)
             print("Epoch took: ", str(datetime.timedelta(seconds=int(times_epoch[-1]))))
-        writer.close()
 
-        if self.upload_tensorboard:
-            self.upload_tensorboard_to_cloud(times_epoch)
 
     def preprocess_on_the_fly(self, X, Y_true):
+        """Performs preprocessing for a given batch on the fly.
+        Args:
+            X : dict
+                X batch returned by torch.DataLoader.
+            Y_true : dict 
+                Y_true batch returned by torch.DataLoader.
+        Returns:
+            X : list
+                List contains all values in same order of X dict, but preprocessed.
+            Y : list
+                List contains all values in same order of X dict, but converted to floats.
         """
-        Takes X and Y as dictionaries and returns them as lists (sorted like the dict)
-        """
-        # TODO: Hacky unsqueezing --> in final dataset class timestep dimension can get discarded anyways
         X["rgb"] = torch.squeeze(X["rgb"])
         if "lidar_bev" in X.keys():
             X["lidar_bev"] = torch.squeeze(X["lidar_bev"])
@@ -220,7 +192,22 @@ class ModelTrainer:
         return X, Y_true
 
 
-    def compute_loss(self, Y_true, Y_pred, IDX, do_weight_samples=True):
+    def compute_loss(self, Y_true, Y_pred, IDX, do_weight_samples=False):
+        """ Computes the loss for a given batch. The function also applies the weighting for the loss terms
+        and optionally sample weighting for tackling class imbalance.
+        Args:
+            Y_true : list
+                Batch of target values.
+            Y_pred : dict 
+                Batch of predictions.
+            IDX : torch.tensor
+                Indices of the samples of the batch.
+            do_weight_samples : bool (optional)
+                If True, sample weights are applied to loss function.
+        Returns:
+            loss_list : list
+                List contains already loss term weighted and (optionally) sample weighted losses.
+        """
         if do_weight_samples:
             # Weight the individual loss terms by their sample weights
             loss_list = [(self.sample_weights[i][IDX] * self.loss_fns[i](Y_pred[i], Y_true[i])).sum() / self.sample_weights[i][IDX].sum() for i in range(len(Y_true))]
@@ -234,62 +221,19 @@ class ModelTrainer:
         # Weight each individual loss term by it's loss weight
         loss_list = [self.loss_fn_weights[i] * loss_list[i] for i in range(len(loss_list))]
         return loss_list
-
-
-    def get_dataset_predictions(self):
-        y_true_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
-        y_pred_list = [[] for _ in range(len(self.dataloader_test.dataset.y))]
-        with torch.no_grad():
-            self.model.eval()
-            for batch_idx, (X_true, Y_true) in tqdm(enumerate(self.dataloader_test)):
-                # Preprocess
-                X_true, Y_true = self.preprocess_on_the_fly(X_true, Y_true)
-                # Move to device (possibly CUDA)
-                X_true = [X_.to(self.device) for X_ in X_true]
-                Y_true = [Y_.to(self.device) for Y_ in Y_true]
-                # Predict
-                Y_pred = self.model(*X_true)
-                # Update lists
-                Y_pred = [torch_pred.flatten().tolist() for torch_pred in Y_pred]
-                Y_true = [torch_true.flatten().tolist() for torch_true in Y_true]
-                y_true_list = [old + new for old, new in zip(y_true_list, Y_true)]
-                y_pred_list = [old + new for old, new in zip(y_pred_list, Y_pred)]
-        return y_true_list, y_pred_list
-        
-
-    def write_to_tensorboard(self, writer, train_loss_list, val_loss_list, epoch):
-        for idx, output in enumerate(self.dataloader_train.dataset.y):
-            writer.add_scalars(f"{self.model.__class__.__name__}: loss_{output}", {
-                                    'train': train_loss_list[idx][-1],
-                                    'val': val_loss_list[idx][-1],
-                                }, epoch)
-
-
-    def upload_tensorboard_to_cloud(self, times_epoch):
-        dirs = os.listdir("runs")
-        dirs_creation_time = [os.path.getctime(os.path.join("runs", dir)) for dir in dirs]
-        dirs_creation_time_sorted = [el[0] for el in sorted(zip(dirs, dirs_creation_time), key=lambda x: x[1])]
-        dir_newest = dirs_creation_time_sorted[-1]
-        df_stats_train = self.dataloader_train.dataset.get_statistics()
-        df_stats_test = self.dataloader_test.dataset.get_statistics()
-        description = f""" 
-        Trained on towns: {", ".join(sorted(self.dataloader_train.dataset.df_meta_data["dir"].str.extract(r'(Town[0-9][0-9])')[0].unique()))}
-        Trained on size GB: {round(df_stats_train[df_stats_train.columns[:-2]].sum().sum(), 2)}
-        Trained on % of entire data: {df_stats_train["%_of_entire_data"].item()}
-        Validated on towns: {", ".join(sorted(self.dataloader_test.dataset.df_meta_data["dir"].str.extract(r'(Town[0-9][0-9])')[0].unique()))}
-        Validated on size GB: {df_stats_test[df_stats_test.columns[:-2]].sum().sum()}
-        Validated on % of entire data: {df_stats_test["%_of_entire_data"].item()}
-        Wall-time elapsed: {str(datetime.timedelta(seconds=int(sum(times_epoch))))}
-        """
-
-        code = f"""tensorboard dev upload --logdir {os.path.join("runs", dir_newest)} \
-        --name "{self.model.__class__.__name__}    Epochs={self.n_epochs}" \
-        --description "{description}" \
-        --one_shot"""
-        os.system(code)
-
+    
 
     def get_performance_stats(self, train_loss_list, val_loss_list):
+        """ Builds a DataFrame of the performance statistics i.e. the train & val losses.
+        Args:
+            train_loss_list : list
+                Contains the train losses for each individual loss term.
+            train_loss_list : list
+                Contains the val losses for each individual loss term.
+        Returns:
+            df_performance_stats : pd.DataFrame
+                DataFrame containing the individual losses as columns.
+        """
         if self.TRAIN:
             data = np.vstack((train_loss_list, val_loss_list)).T
         else:
@@ -304,6 +248,22 @@ class ModelTrainer:
 
 
     def get_speed_stats(self, times_epoch, times_forward, times_backward, times_val):
+        """ Builds a DataFrame of the speed statistics. Disclaimer: The timing results
+        must be interpreted with caution as no specific synchronization was applied
+        in the trainings loop.
+        Args:
+            times_epoch : list
+                Contains the time needed for every epoch.
+            times_forward : list
+                Contains the time needed for every forward pass of each epoch.
+            times_backward : list
+                Contains the time needed for every backward pass of each epoch.
+            times_val : list
+                Contains the time needed for the entire validation step in each epoch.
+        Returns:
+            df_speed_stats : pd.DataFrame
+                DataFrame containing timing statistics.
+        """
         df_speed_stats = pd.DataFrame({ 
         "times_forward": times_forward, 
         "times_backward": times_backward, 
