@@ -110,7 +110,7 @@ ipython_config.py
 *.pkl
 *.pth
 *.csv
-*.txt
+
 
 # tensorboard log files
 **/runs/
