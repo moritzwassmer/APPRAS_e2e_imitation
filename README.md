@@ -12,7 +12,7 @@ Due to the challenging nature of the project, only two sensor-setups and models 
 
 ## System Architecture
 In the following system architecture diagram the data engineering related components are highlighted in gray, the data science related components in green and the evaluation related components in blue.
-![System architecture of project](architecture.png "System architecture")
+![System architecture of project](figures/architecture.png "System architecture")
 
 ## System specifications
 
