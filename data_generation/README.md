@@ -2,7 +2,7 @@
 
 ## TransFuser Dataset
 
-To be able to run the data generation scripts in the TransFuser Paper, we first write the correct environment variables in the [datagen script ](transfuser_repo/transfuser/leaderboard/scripts/datagen.sh) inside the TransFuser repo (change the CARLA_ROOT and WORK_DIR to your settings), then run the script. The environment dependencies are in the [requirements file](data_generation/requirements.txt).
+To be able to run the data generation scripts in the TransFuser paper, we first write the correct environment variables in the [datagen script ](transfuser_repo/transfuser/leaderboard/scripts/datagen.sh) inside the TransFuser repo (change the CARLA_ROOT and WORK_DIR to your settings), then run the script. The environment dependencies are in the [requirements file](data_generation/requirements.txt).
 
 ```Shell
 $ pip install -r requirements.txt
