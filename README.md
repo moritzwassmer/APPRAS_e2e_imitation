@@ -3,7 +3,7 @@ For further explanation of workflow and reasoning behind this project, please re
 
 [System-Design-Specifications](system_design_specifications.pdf)
 
-[Presentation](Final presentation APPRAS V2.pptx.pdf)
+[Presentation](final_presentation.pdf)
 
 ## Description
 
