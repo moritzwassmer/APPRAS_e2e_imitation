@@ -1,7 +1,7 @@
 # End2Endappras
 For further explanation of workflow and reasoning behind this project, please read the following document: 
 
-[System-Design-Specifications](Final SDS - Hand in this one.docx.pdf)
+[System-Design-Specifications](system_design_specifications.pdf)
 
 [Presentation](Final presentation APPRAS V2.pptx.pdf)
 
