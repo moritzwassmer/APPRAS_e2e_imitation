@@ -12,6 +12,8 @@ The project aims to create a End-to-End model for autonomous driving that is dev
 Specifically, the project aims to investigate and compare the performance of several different sensor-setups. 
 Due to the challenging nature of the project, only two sensor-setups and models for End-to-End autonomous driving were created and compared: RGB and RGB + LiDAR. 
 
+https://github.com/user-attachments/assets/eb3a90d7-d00d-4856-b2bf-710205bd0eaf
+
 ## System Architecture
 In the following system architecture diagram the data engineering related components are highlighted in gray, the data science related components in green and the evaluation related components in blue.
 ![System architecture of project](figures/architecture.png "System architecture")
@@ -27,6 +29,8 @@ In the following system architecture diagram the data engineering related compon
 4. If LiDAR should be used in training, run the `data_pipeline/notebooks/lidar_to_disk.ipynb` notebook to transform the raw lidar data to birds-eye-view and safe them to disk for further useage.
 5. Adjust the default setting in the "Choose settings" section at the top of the `models/notebooks/run_model_trainer.ipynb` notebook optionally, and run the remaining part of the notebook afterwards.
 6. Observe your model and performance statistics in the `models/notebooks/experiment_files` folder in the subfolder with the most recent timestamp.
+
+
 
 ### Scenario 2: Model Evaluation in the Leaderboard
 See `Evaluation/README.md`.
