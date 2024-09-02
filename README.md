@@ -14,6 +14,16 @@ Due to the challenging nature of the project, only two sensor-setups and models 
 
 https://github.com/user-attachments/assets/eb3a90d7-d00d-4856-b2bf-710205bd0eaf
 
+### Key Features
+
+#### 1) Data Augmentation
+We use augmented training data (varying weather and time)
+
+![data augmentation](https://github.com/user-attachments/assets/5e704d36-5afc-4ef0-9dd6-7c20d6204222)
+
+#### 2) Noise injected data
+We inject noise into the steering signals of the expert agent to learn recovering from unexpected situations
+
 ## System Architecture
 In the following system architecture diagram the data engineering related components are highlighted in gray, the data science related components in green and the evaluation related components in blue.
 ![System architecture of project](figures/architecture.png "System architecture")
