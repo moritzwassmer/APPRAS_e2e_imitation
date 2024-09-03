@@ -25,6 +25,9 @@ We use augmented training data (varying weather and time)
 We inject noise into the steering signals of the expert agent to learn recovering from unexpected situations
 
 #### 3) Multiple Architectures
+
+![image](https://github.com/user-attachments/assets/55ce1bd0-35ca-47b6-bc31-f92df99d2fde)
+
 ![image](https://github.com/user-attachments/assets/7849c04a-755e-4b88-8ca2-9d66828d1f59)
 inspired by https://arxiv.org/pdf/1710.02410
 
