@@ -24,6 +24,15 @@ We use augmented training data (varying weather and time)
 #### 2) Noise injected data
 We inject noise into the steering signals of the expert agent to learn recovering from unexpected situations
 
+#### 3) Multiple Architectures
+![image](https://github.com/user-attachments/assets/7849c04a-755e-4b88-8ca2-9d66828d1f59)
+inspired by https://arxiv.org/pdf/1710.02410
+
+#### 4) Evaluation on longest6 Benchmark
+For the results view the presentation pdf.
+
+
+
 ## System Architecture
 In the following system architecture diagram the data engineering related components are highlighted in gray, the data science related components in green and the evaluation related components in blue.
 ![System architecture of project](figures/architecture.png "System architecture")
